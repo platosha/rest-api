@@ -1,0 +1,587 @@
+<!--
+@license
+Copyright 2015 Anton Platonov <platosha@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<!--
+An element specifying REST API resource inside <rest-api>.
+
+Example:
+
+    <rest-api url="http://localhost:3000">
+      <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
+    </rest-api>
+
+@demo
+-->
+<dom-module id="rest-api-resource">
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'rest-api-resource',
+
+    properties: {
+
+      /**
+       * REST API resource name.
+       */
+      name: String,
+
+      /**
+       * Used to get 
+       */
+      parentUrl: String,
+
+      url: {
+        type: String,
+        computed: '_computeUrl(parentUrl, _parentItem, name)'
+      },
+
+      params: Object,
+
+      idAttribute: String,
+
+      collection: {
+        type: Array,
+        notify: true,
+        observer: '_initCollection',
+        value: function() {
+          return [];
+        }
+      },
+
+      _collectionById: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
+
+      offsetParamName: String,
+
+      limitParamName: String,
+
+      noAutoFetch: Boolean,
+
+      readOnly: Boolean,
+
+      selectedItem: {
+        type: Object,
+        notify: true
+      },
+
+      _parentItem: {
+        type: Object,
+        value: function() {
+          return null;
+        }
+      }
+
+    },
+
+    created: function() {
+      this._observer = Polymer.dom(this).observeNodes(this._effectiveChildrenChanged);
+      this._skipAutoSave = true;
+    },
+
+    ready: function() {
+      this._skipAutoSave = false;
+    },
+
+    attached: function() {
+      var inheritedProperties = [
+        'params',
+        'idAttribute',
+        'offsetParamName',
+        'limitParamName',
+        'readOnly'
+      ];
+
+      for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
+        if (this[prop] === undefined) {
+          this[prop] = this.parentElement[prop];
+        }
+      }
+
+      this.parentUrl = this.parentElement.url;
+
+      if (this._isNested()) {
+        this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+      }
+    },
+
+    detached: function() {
+      this.unlisten(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+    },
+
+    observers: [
+      '_collectionChanged(collection.*)',
+      '_autoFetch(url, collection)'
+    ],
+
+    _isNested: function() {
+      return this.parentElement.is === 'rest-api-resource';
+    },
+
+    _getParentItemId: function(parentItem) {
+      return this.parentElement._getItemId(parentItem);
+    },
+
+    _computeUrl: function(parentUrl, parentItem, name) {
+      var url = parentUrl.replace(/\/$/, '');
+
+      if (this._isNested()) {
+        if (parentItem === null) {
+          return undefined;
+        }
+
+        url += '/' + this._getParentItemId(parentItem);
+      }
+
+      return url + '/' + name;
+    },
+
+    _forEachAddedAndRemovedItem: function(changes, addedItemCallback, removedItemCallback) {
+
+      var processer = (function(splice) {
+
+        splice.removed.forEach(removedItemCallback);
+
+        for (var i = splice.index; i < splice.index + splice.addedCount; i++) {
+          addedItemCallback(splice.object[i], i);
+        }
+
+      }).bind(this);
+
+      changes.indexSplices.forEach(processer);
+
+    },
+
+    _collectionChanged: function(changeRecord) {
+
+      var keys = changeRecord.path.split('.').slice(1);
+
+      // Update this._collectionById hash index
+
+      switch (keys[0]) {
+
+        case 'length':
+          break;
+
+        case 'splices':
+
+          this._forEachAddedAndRemovedItem(
+              changeRecord.value,
+              (function(addedItem) {
+                var id = this._getItemId(addedItem);
+                if (id) {
+                  this._collectionById[id] = addedItem;
+                }
+              }).bind(this),
+              (function(removedItem) {
+                var id = this._getItemId(removedItem);
+                if (id) {
+                  delete this._collectionById[id];
+                }
+              }).bind(this)
+          );
+
+          break;
+
+        default:
+
+          if (keys.length === 0) {
+            break;
+          }
+
+          var item = this._polymerCollection.getItem(keys[0]);
+
+          if (keys.length === 1 || keys[1] === this.idAttribute) {
+            var oldId = this._getItemId(item);
+            var newId = keys.length === 1 ?
+                        this._getItemId(changeRecord.value) :
+                        changeRecord.value;
+            if (oldId !== newId) {
+              if (oldId) {
+                delete this._collectionById[oldId];
+              }
+              this._collectionById[newId] = item;
+            }
+          }
+
+      }
+
+      // Auto save changes to remote API if needed
+
+      if (this._skipAutoSave || this.readOnly) {
+        return true;
+      }
+
+      switch (keys[0]) {
+
+        case 'length':
+          break;
+
+        case 'splices':
+
+          var addedBackById = {};
+
+          this._forEachAddedAndRemovedItem(
+
+              changeRecord.value,
+
+              (function(addedItem) {
+                // TODO: Add item indexes to item data and send them to the API
+                var itemId = this._getItemId(addedItem);
+                if (itemId) {
+                  // Memoize that the item is to be added.
+                  addedBackById[itemId] = addedItem;
+                  // The item has id. Assuming it's already created. Skip.
+                  return;
+                }
+
+                // Create item
+                this.collection.saveItem(null, addedItem, {
+                  callback: this._updateItem.bind(this, addedItem),
+                  method: 'POST'
+                });
+              }).bind(this),
+
+              (function(removedItem) {
+                var itemId = this._getItemId(removedItem);
+                if (itemId) {
+                  if (addedBackById[itemId]) {
+                    // The item is to be removed and added back. Update.
+                    this.collection.saveItem(itemId, removedItem, {
+                      callback: this._updateItem.bind(this, addedItem)
+                    });
+                  } else {
+                    // Destroy item
+                    this.collection.destroyItem(itemId);
+                  }
+                }
+              }).bind(this)
+
+          );
+
+          break;
+
+        case undefined:
+          break;
+
+        default:
+
+          var item = this._polymerCollection.getItem(keys[0]);
+          var itemId = this._getItemId(item);
+          var options = {
+            callback: this._updateItem.bind(this)
+          };
+
+          switch (keys.length) {
+
+            case 1:
+
+              // Save the entire item
+              options.method = 'PUT';
+              this.collection.saveItem(itemId, changeRecord.value, options);
+              break;
+
+            case 2:
+
+              if (typeof changeRecord.value === 'object') {
+                // TODO: Handle non-primitive values somehow
+                break;
+              }
+
+              // Save one attribute
+              var attrs = {};
+              attrs[keys[1]] = changeRecord.value;
+              this.collection.saveItem(itemId, attrs, options);
+              break;
+
+          }
+
+      }
+
+    },
+
+    get _polymerCollection() {
+      return Polymer.Collection.get(this.collection);
+    },
+
+    _spliceCollection: function(index, count, items) {
+      this._skipAutoSave = true;
+      this.splice.apply(this, ['collection', index, count].concat(items));
+      this._skipAutoSave = false;
+    },
+
+    _replaceCollection: function(items) {
+      this._spliceCollection(0, this.collection.length, items);
+    },
+
+    _getItemId: function(item) {
+      return item && item[this.idAttribute];
+    },
+
+    _getItem: function(idOrAttrs) {
+      if (idOrAttrs === undefined || idOrAttrs === null) return undefined;
+      var id = this._getItemId(idOrAttrs);
+      return id !== null ?
+          this._collectionById[id] :
+          this._collectionById[idOrAttrs];
+    },
+
+    _getUrlForItemId: function(itemId) {
+      return itemId ? this.url + '/' + itemId : '';
+    },
+
+    _updateItem: function(item, attrs) {
+
+      this._skipAutoSave = true;
+
+      if (!attrs) {
+        attrs = item;
+        item = undefined;
+      }
+
+      item = item || this._getItem(attrs);
+      if (item === undefined || item === null) {
+        this._skipAutoSave = false;
+        return;
+      }
+
+      var key = this._polymerCollection.getKey(item);
+
+      Object.getOwnPropertyNames(attrs).forEach((function(attr) {
+        if (attrs[attr] !== item[attr]) {
+          this.set(['collection', key, attr], attrs[attr]);
+        }
+      }).bind(this));
+
+      this._skipAutoSave = false;
+
+    },
+
+    _updateNestedCollection(item, name, path, value) {
+
+      this._skipAutoSave = true;
+
+      var key = this._polymerCollection.getKey(item);
+      this.set(['collection', key, name, path], value);
+
+      this._skipAutoSave = false;
+
+    },
+
+    _collectionMethods: {
+
+      fetch: function() {
+
+        var ajax = this._getAjaxElement();
+        if (!ajax) {
+          return;
+        }
+
+        ajax.addEventListener('response', (function(e) {
+          this._replaceCollection(e.detail.response);
+        }).bind(this));
+
+        return ajax.generateRequest();
+
+      },
+
+      /* TODO: add a callback method like for <vaadin-grid> items property
+
+      lazyFetch: function(req) {
+
+        var ajax = this._getAjaxElement();
+        if (!ajax) {
+          return;
+        }
+
+        ajax.params[this.offsetParamName] = req.index;
+        ajax.params[this.limitParamName] = req.count;
+
+        ajax.addEventListener('response', (function(e) {
+
+          this._spliceCollection(
+              req.index,
+              e.detail.response.length,
+              e.detail.response
+          );
+
+          req.success(
+              e.detail.response,
+              parseInt(e.detail.xhr.getResponseHeader('X-Total-Count'))
+          );
+
+        }).bind(this));
+
+        return ajax.generateRequest();
+
+      },
+
+      */
+
+      saveItem: function(id, attrs, options) {
+
+        if (this.readOnly) {
+          return;
+        }
+
+        if (id) {
+
+          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs);
+          if (!ajax) {
+            return;
+          }
+
+          ajax.method = options.method || 'PATCH';
+
+        } else {
+
+          var ajax = this._getAjaxElement(null, attrs);
+          if (!ajax) {
+            return;
+          }
+
+          ajax.method = options.method || 'POST';
+
+        }
+
+        ajax.addEventListener('response', function(e) {
+          if (options.callback) {
+            options.callback(e.detail.response);
+          }
+        });
+
+        return ajax.generateRequest();
+
+      },
+
+      destroyItem: function(id, options) {
+
+        if (this.readOnly) {
+          return;
+        }
+
+        options = options || {};
+
+        if (!id) {
+          if (options.callback) {
+            this.async(options.callback);
+          }
+          return;
+        }
+
+        var ajax = this._getAjaxElement(this._getUrlForItemId(id));
+        if (!ajax) {
+          return;
+        }
+
+        ajax.method = options.method || 'DELETE';
+        ajax.addEventListener('response', function(e) {
+          if (options.callback) {
+            options.callback(e.detail.response);
+          }
+        });
+
+        return ajax.generateRequest();
+
+      }
+
+    },
+
+    _initCollection: function(collection) {
+      if (!collection) {
+        return;
+      }
+
+      Object.getOwnPropertyNames(this._collectionMethods).forEach(function(prop) {
+        collection[prop] = this._collectionMethods[prop].bind(this);
+      }, this);
+
+      return collection;
+    },
+
+    _getAjaxElement: function(url, data) {
+      var ajax = document.createElement('iron-ajax');
+      ajax.removeAttribute('id');
+      ajax.contentType = 'application/json';
+      ajax.params = Object.create(this.get('params') || {});
+      ajax.url = url || this.url;
+      if (!ajax.url) {
+        return;
+      }
+      ajax.body = data ? JSON.stringify(data) : '';
+      return ajax;
+    },
+
+    _autoFetch: function() {
+      if (!this.noAutoFetch && !this._skipAutoFetch) {
+        if (this._autoFetchRequest) {
+          this._autoFetchRequest.abort();
+          delete this._autoFetchRequest;
+        }
+        this._autoFetchRequest = this.collection.fetch();
+        this._autoFetchRequest.completes.then((function() {
+          delete this._autoFetchRequest;
+        }).bind(this));
+      }
+    },
+
+    _parentSelectedItemChanged: function(event) {
+      this._skipAutoFetch = true;
+      this._parentItem = event.detail.value;
+      this._skipAutoFetch = false;
+      this.set('collection', this._parentItem && this._parentItem[this.name] || []);
+    },
+
+    _effectiveChildrenChanged: function(changeset) {
+      var i;
+      for (i = 0; i < changeset.addedNodes.length; i++) {
+        var addedChild = changeset.addedNodes[i];
+        if (addedChild.is === 'rest-api-resource') {
+          this.listen(addedChild, 'collection-changed', '_nestedCollectionChanged');
+        }
+      }
+      for (i = 0; i < changeset.removedNodes.length; i++) {
+        var removedChild = changeset.removedNodes[i];
+        if (removedChild.is === 'rest-api-resource') {
+          this.unlisten(addedChild, 'collection-changed', '_nestedCollectionChanged');
+        }
+      }
+    },
+
+    _nestedCollectionChanged: function(event) {
+      var child = event.target;
+      if (event.detail.path) {
+        var path = event.detail.path.split('.').slice(1).join('.');
+        this._updateNestedCollection(child._parentItem, child.name, path, event.detail.value);
+      } else {
+        var change = {};
+        change[child.name] = child.collection;
+        this._updateItem(child._parentItem, change);
+      }
+    }
+
+  });
+
+</script>

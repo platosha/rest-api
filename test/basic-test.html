@@ -1,0 +1,86 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../test-fixture/test-fixture.html">
+
+    <link rel="import" href="../rest-api.html">
+  </head>
+  <body>
+
+    <test-fixture id="rest-api">
+      <template is="dom-template">
+        <rest-api url="{{apiUrl}}">
+          <rest-api-resource name="foos">
+            <rest-api-resource name="bars" read-only></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <script>
+
+      var data = {
+        apiUrl: '//rest.example.com/api'
+      };
+      var restApi, xhr, requests;
+
+      beforeEach(function() {
+        xhr = sinon.useFakeXMLHttpRequest();
+        requests = [];
+        xhr.onCreate = function(request) {
+          requests.push(request);
+        };
+        restApi = fixture('rest-api', {apiUrl: data.apiUrl});
+      });
+
+      afterEach(function() {
+        xhr.restore();
+      });
+
+      describe('basic features', function() {
+        it('should register', function() {
+          expect(restApi.is).to.equal('rest-api');
+        });
+      });
+
+      describe('resource', function() {
+        describe('CRUD', function() {
+          it('should fetch collection automatically', function() {
+            expect(requests.length).to.equal(1);
+            expect(requests[0].url).to.equal(data.apiUrl + '/foos');
+          });
+        });
+      });
+
+      /*
+        TODO: Add tests for:
+
+        ## Api element
+        - Fires meaningful events
+        - Retargets changes from nested resources to root
+
+        ## Resource element
+        - Inherits props
+        - Constructs url with name
+
+        ### CRUD
+        - autoFetch
+        - Bound collection changes
+
+        ### Nested Resource
+        - Fetches nested collection on parent seleted item change
+        - Adds collection to parent selected item
+
+        ## Make sure
+        - All public props tested
+      */
+
+    </script>
+
+  </body>
+</html>

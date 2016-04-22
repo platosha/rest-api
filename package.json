@@ -1,0 +1,33 @@
+{
+  "name": "rest-api",
+  "version": "0.0.1",
+  "description": "An element providing a starting point for your own reusable Polymer elements.",
+  "main": "scripts/server.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "browser-sync": "^2.12.3",
+    "connect-logger": "0.0.1",
+    "faker": "^3.1.0",
+    "json-server": "^0.8.10",
+    "lowdb": "^0.12.5",
+    "underscore": "^1.8.3",
+    "underscore-db": "^0.10.0"
+  },
+  "scripts": {
+    "test": "wct",
+    "start": "node scripts/server.js",
+    "prestart": "node scripts/db-create.js"
+  },
+  "keywords": [
+    "web-component",
+    "web-components",
+    "polymer",
+    "rest",
+    "api"
+  ],
+  "author": "Anton Platonov <platosha@gmail.com>",
+  "license": "Apache-2.0"
+}

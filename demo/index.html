@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>rest-api Demo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700">
+    <style>
+      body {
+        font: 300 12pt/2em 'Roboto', 'Noto', sans-serif;
+        -webkit-font-smoothing: antialiased;
+
+        margin: 0;
+        padding: 2em;
+        background: #fff;
+        }
+
+      code {
+        font-family: 'Roboto Mono', 'Consolas', 'Menlo', monospace;
+        }
+    </style>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../rest-api.html">
+    <link rel="import" href="../../iron-flex-layout/classes/iron-flex-layout.html">
+    <link rel="import" href="../../iron-list/iron-list.html">
+    <link rel="import" href="../../paper-item/paper-item.html">
+    <link rel="import" href="../../paper-item/paper-item-body.html">
+    <link rel="import" href="../../paper-button/paper-button.html">
+    <link rel="import" href="../../vaadin-grid/vaadin-grid.html">
+  </head>
+  <body>
+
+    <p>An example of <code>&lt;rest-api&gt;</code>:</p>
+
+    <dom-module id="app-book-view">
+      <template>
+        <style>
+          dl {
+            overflow: hidden;
+            }
+
+          dt {
+            width: 9em;
+            margin: 0 0 .5em;
+            float: left;
+            clear: left;
+            font-weight: bold;
+            }
+
+          dd {
+            margin: 0 0 .5em 10em;
+            }
+        </style>
+        <template is="dom-if" if="[[book]]">
+          <article class="book">
+            <h2>[[book.title]]</h2>
+            <p><em>by [[book.author]], [[book.year]]</em></p>
+            <template is="dom-if" if="[[book.reviews]]">
+              <h3>Reviews ([[book.reviews.length]])</h3>
+              <template is="dom-repeat" items="[[book.reviews]]" as="review">
+                <p>
+                  [[review.body]]<br/>
+                  &mdash; [[review.author]]
+                </p>
+              </template>
+            </template>
+          </article>
+        </template>
+        <template is="dom-if" if="[[!book]]">
+          <p>No book is selected</p>
+        </template>
+      </template>
+      <script>
+        document.addEventListener('HTMLImportsLoaded', function() {
+          Polymer({
+            is: 'app-book-view',
+            properties: {
+              book: Object
+            }
+          });
+        });
+      </script>
+    </dom-module>
+
+    <template is="dom-bind" id="app">
+
+      <rest-api url="/api" offset-param-name="_start" limit-param-name="_limit">
+        <rest-api-resource name="books" collection="{{books}}" selected-item="{{currentBook}}">
+          <rest-api-resource name="reviews" read-only></rest-api-resource>
+        </rest-api-resource>
+        <rest-api-resource name="reviews" no-auto-fetch></rest-api-resource>
+      </rest-api>
+
+      <p>
+        <paper-button raised onclick="appendBook()">Append a book</paper-button>
+        <paper-button raised onclick="removeLastBook()">Remove the last book</paper-button>
+        <paper-button raised onclick="changeLastBookYear()">Change the last book’s year</paper-button>
+      </p>
+
+      <iron-list items="[[books]]" selection-enabled selected-item="{{currentBook}}" style="height: 288px;">
+        <template>
+          <paper-item style="padding-top:24px;">
+            <paper-item-body class="flex-none self-start" style="padding-right: 24px;">
+              [[item.year]]
+            </paper-item-body>
+            <paper-item-body two-line class="flex layout start-justified">
+              <div secondary>[[item.author]]</div>
+              <div>[[item.title]]</div>
+            </paper-item-body>
+          </paper-item>
+        </template>
+      </iron-list>
+
+      <h3>Selected book</h3>
+      <app-book-view book="[[currentBook]]"></app-book-view>
+
+      <script>
+        function appendBook() {
+          document.querySelector('#app').push('books', {
+            title: 'Random book ' + (Math.random() * 10e7 | 0).toString(36),
+            author: 'Author ' + (Math.random() * 10e7 | 0).toString(36),
+            year: 1970 + Math.random() * 50 | 0
+          });
+        }
+
+        function removeLastBook() {
+          document.querySelector('#app').pop('books');
+        }
+
+        function changeLastBookYear() {
+          var app = document.querySelector('#app');
+          var lastBookIndex = app.books.length - 1;
+          app.set('books.' + lastBookIndex + '.year', app.books[lastBookIndex].year - 1);
+        }
+      </script>
+
+    </template>
+
+  </body>
+</html>
