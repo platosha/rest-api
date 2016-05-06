@@ -29,6 +29,15 @@ Example:
 @demo
 -->
 <dom-module id="rest-api-resource">
+  <template>
+    <iron-ajax id="ajax"
+              content-type="application/json"
+              on-error="_transmitAjaxEvent"
+              on-request="_transmitAjaxEvent"
+              on-response="_transmitAjaxEvent">
+    </iron-ajax>
+    <content></content>
+  </template>
 </dom-module>
 
 <script>
@@ -82,6 +91,8 @@ Example:
 
       readOnly: Boolean,
 
+      bubbles: Boolean,
+
       selectedItem: {
         type: Object,
         notify: true
@@ -95,6 +106,24 @@ Example:
       }
 
     },
+
+    /**
+     * Fired when a request is sent.
+     *
+     * @event request
+     */
+
+    /**
+     * Fired when a response is received.
+     *
+     * @event response
+     */
+
+    /**
+     * Fired when an error is received.
+     *
+     * @event error
+     */
 
     created: function() {
       this._observer = Polymer.dom(this).observeNodes(this._effectiveChildrenChanged);
@@ -111,7 +140,8 @@ Example:
         'idAttribute',
         'offsetParamName',
         'limitParamName',
-        'readOnly'
+        'readOnly',
+        'bubbles'
       ];
 
       for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
@@ -399,11 +429,12 @@ Example:
           return;
         }
 
-        ajax.addEventListener('response', (function(e) {
-          this._replaceCollection(e.detail.response);
-        }).bind(this));
+        var request = ajax.generateRequest();
+        request.completes.then(function(request) {
+          this._replaceCollection(request.response);
+        }.bind(this));
 
-        return ajax.generateRequest();
+        return request;
 
       },
 
@@ -466,13 +497,15 @@ Example:
 
         }
 
-        ajax.addEventListener('response', function(e) {
+        var request = ajax.generateRequest();
+
+        request.completes.then(function(request) {
           if (options.callback) {
-            options.callback(e.detail.response);
+            options.callback(request.response);
           }
         });
 
-        return ajax.generateRequest();
+        return request;
 
       },
 
@@ -497,13 +530,15 @@ Example:
         }
 
         ajax.method = options.method || 'DELETE';
-        ajax.addEventListener('response', function(e) {
+
+        var request = ajax.generateRequest();
+        request.completes.then(function(request) {
           if (options.callback) {
-            options.callback(e.detail.response);
+            options.callback(request.response);
           }
         });
 
-        return ajax.generateRequest();
+        return request;
 
       }
 
@@ -522,14 +557,12 @@ Example:
     },
 
     _getAjaxElement: function(url, data) {
-      var ajax = document.createElement('iron-ajax');
-      ajax.removeAttribute('id');
-      ajax.contentType = 'application/json';
-      ajax.params = Object.create(this.get('params') || {});
+      var ajax = this.$.ajax;
       ajax.url = url || this.url;
       if (!ajax.url) {
         return;
       }
+      ajax.params = Object.create(this.params || {});
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },
@@ -580,6 +613,10 @@ Example:
         change[child.name] = child.collection;
         this._updateItem(child._parentItem, change);
       }
+    },
+
+    _transmitAjaxEvent: function(event) {
+      this.fire(event.type, event.detail, {bubbles: this.bubbles});
     }
 
   });
