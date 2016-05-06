@@ -248,12 +248,10 @@ Example:
             var newId = keys.length === 1 ?
                         this._getItemId(changeRecord.value) :
                         changeRecord.value;
-            if (oldId !== newId) {
-              if (oldId) {
-                delete this._collectionById[oldId];
-              }
-              this._collectionById[newId] = item;
+            if (oldId) {
+              delete this._collectionById[oldId];
             }
+            this._collectionById[newId] = item;
           }
 
       }

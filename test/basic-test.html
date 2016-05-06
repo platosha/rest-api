@@ -18,6 +18,7 @@
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
+          <rest-api-resource name="bars" no-auto-fetch></rest-api-resource>
         </rest-api>
       </template>
     </test-fixture>
@@ -25,35 +26,207 @@
     <script>
 
       var data = {
-        apiUrl: '//rest.example.com/api'
+        apiUrl: '//rest-api.example.com',
+        foos: [
+          {id: 1},
+          {id: 2},
+          {id: 3}
+        ],
+        bars: [
+          {id: 11, fooId: 1},
+          {id: 12, fooId: 1},
+          {id: 13, fooId: 2}
+        ]
       };
-      var restApi, xhr, requests;
+
+      function cloneObject(obj) {
+        var clone = {};
+        Object.getOwnPropertyNames(obj).forEach(function(prop) {
+          clone[prop] = obj[prop];
+        });
+        return clone;
+      }
+
+      function getApiUrl(url) {
+        return data.apiUrl + url;
+      }
+
+      var restApi, foos, foosBars, bars, server;
+
+      function createRestApi(done) {
+        restApi = fixture('rest-api', {apiUrl: data.apiUrl});
+        foos = Polymer.dom(restApi).children[0];
+        bars = Polymer.dom(restApi).children[1];
+        foosBars = Polymer.dom(foos).children[0];
+        if (done) {
+          afterServerResponse(foos, done);
+        }
+      }
+
+      function afterServerResponse(target, callback) {
+        var handler = function(event) {
+          target.removeEventListener('response', handler);
+          target.async(callback);
+        };
+        target.addEventListener('response', handler);
+        server.respond();
+      }
+
+      function serverRespondsWithJson(data) {
+        server.respondWith([200, {"Content-Type": "application/json"}, JSON.stringify(data)]);
+      }
+
+      function expectRequest(method, url, body) {
+        var request = server.requests[server.requests.length - 1];
+        expect(request.method).to.equal(method);
+        expect(request.url).to.equal(getApiUrl(url));
+        if (body) {
+          expect(request.requestBody).to.equal(JSON.stringify(body));
+        }
+      }
+
+      function expectArraysToEqual(array, otherArray) {
+        array.forEach(function(item, index) {
+          expect(item).to.deep.equal(otherArray[index]);
+        });
+      }
 
       beforeEach(function() {
-        xhr = sinon.useFakeXMLHttpRequest();
-        requests = [];
-        xhr.onCreate = function(request) {
-          requests.push(request);
-        };
-        restApi = fixture('rest-api', {apiUrl: data.apiUrl});
+        server = sinon.fakeServer.create();
+        // Respond data.foos by default
+        serverRespondsWithJson(data.foos);
       });
 
       afterEach(function() {
-        xhr.restore();
+        server.restore();
       });
 
+
       describe('basic features', function() {
+
+
+        beforeEach(createRestApi);
+
+
         it('should register', function() {
           expect(restApi.is).to.equal('rest-api');
         });
+
+
       });
 
+
       describe('resource', function() {
-        describe('CRUD', function() {
-          it('should fetch collection automatically', function() {
-            expect(requests.length).to.equal(1);
-            expect(requests[0].url).to.equal(data.apiUrl + '/foos');
+
+
+        describe('initial auto-fetch', function() {
+
+
+          it('should auto-fetch collection after attached', function(done) {
+
+            createRestApi();
+
+            expectRequest('GET', '/foos');
+            expect(server.requests.length).to.equal(1);
+
+            afterServerResponse(foos, function() {
+              expect(foos.collection).to.deep.include.members(data.foos);
+              done();
+            });
+
           });
+
+
+        });
+
+
+        describe('CRUD', function() {
+
+
+          beforeEach(createRestApi);
+
+
+          it('should auto-fetch collection on name change', function() {
+
+            serverRespondsWithJson(data.bars);
+
+            foos.name = 'bars';
+
+            expectRequest('GET', '/bars');
+            expect(server.requests.length).to.equal(2);
+
+            afterServerResponse(foos, function() {
+              expectArraysToEqual(foos.collection, data.bars);
+            });
+
+          });
+
+
+          it('should create new item on collection push', function() {
+
+            var newObj = {newKey: 'foo'};
+            var newObjOnServer = cloneObject(newObj);
+            newObjOnServer.id = 4;
+            serverRespondsWithJson(newObjOnServer);
+
+            foos.push('collection', newObj);
+
+            expectRequest('POST', '/foos', newObj);
+
+            afterServerResponse(foos, function() {
+              expect(foos.collection.length).to.equal(data.foos.length + 1);
+              expect(foos.collection[data.foos.length]).to.deep.equal(newObjOnServer);
+            });
+
+          });
+
+
+          it('should update the item on key change', function() {
+
+            var newKey = 'foo';
+            var newKeyOnServer = 'bar';
+            serverRespondsWithJson({newKey: newKeyOnServer});
+
+            foos.set('collection.0.newKey', newKey)
+
+            expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
+            afterServerResponse(foos, function() {
+              expect(foos.collection.length).to.equal(data.foos.length);
+              expect(foos.collection[0].newKey).to.equal(newKey);
+            });
+
+          });
+
+
+          it('should update the item on replace', function() {
+
+            var newItem = cloneObject(data.foos[0]);
+            newItem.newKey = 'foo';
+            var newItemOnServer = cloneObject(newItem);
+            newItemOnServer.newKey = 'bar';
+            serverRespondsWithJson(newItemOnServer);
+
+            foos.set('collection.0', newItem);
+
+            expectRequest('PUT', '/foos/' + data.foos[0].id, newItem);
+            afterServerResponse(foos, function() {
+              expect(foos.collection.length).to.equal(data.foos.length);
+              expect(foos.collection[0]).to.deep.equal(newItemOnServer);
+            });
+          });
+
+
+          it('should destroy item', function() {
+
+            foos.pop('collection');
+
+            expectRequest('DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
+            afterServerResponse(foos, function() {
+              expect(foos.collection.length).to.equal(data.foos.length - 1);
+            });
+
+          });
+
         });
       });
 
@@ -66,18 +239,13 @@
 
         ## Resource element
         - Inherits props
-        - Constructs url with name
-
-        ### CRUD
-        - autoFetch
-        - Bound collection changes
 
         ### Nested Resource
         - Fetches nested collection on parent seleted item change
         - Adds collection to parent selected item
 
         ## Make sure
-        - All public props tested
+        - All public props are tested
       */
 
     </script>
