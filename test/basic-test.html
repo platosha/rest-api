@@ -141,7 +141,7 @@
           beforeEach(createRestApi);
 
 
-          it('should auto-fetch collection on name change', function() {
+          it('should auto-fetch collection on name change', function(done) {
 
             serverRespondsWithJson(data.bars);
 
@@ -152,12 +152,13 @@
 
             afterServerResponse(foos, function() {
               expectArraysToEqual(foos.collection, data.bars);
+              done();
             });
 
           });
 
 
-          it('should create new item on collection push', function() {
+          it('should create new item on collection push', function(done) {
 
             var newObj = {newKey: 'foo'};
             var newObjOnServer = cloneObject(newObj);
@@ -171,12 +172,13 @@
             afterServerResponse(foos, function() {
               expect(foos.collection.length).to.equal(data.foos.length + 1);
               expect(foos.collection[data.foos.length]).to.deep.equal(newObjOnServer);
+              done();
             });
 
           });
 
 
-          it('should update the item on key change', function() {
+          it('should update the item on key change', function(done) {
 
             var newKey = 'foo';
             var newKeyOnServer = 'bar';
@@ -188,12 +190,13 @@
             afterServerResponse(foos, function() {
               expect(foos.collection.length).to.equal(data.foos.length);
               expect(foos.collection[0].newKey).to.equal(newKey);
+              done();
             });
 
           });
 
 
-          it('should update the item on replace', function() {
+          it('should update the item on replace', function(done) {
 
             var newItem = cloneObject(data.foos[0]);
             newItem.newKey = 'foo';
@@ -207,17 +210,19 @@
             afterServerResponse(foos, function() {
               expect(foos.collection.length).to.equal(data.foos.length);
               expect(foos.collection[0]).to.deep.equal(newItemOnServer);
+              done();
             });
           });
 
 
-          it('should destroy item', function() {
+          it('should destroy item', function(done) {
 
             foos.pop('collection');
 
             expectRequest('DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
             afterServerResponse(foos, function() {
               expect(foos.collection.length).to.equal(data.foos.length - 1);
+              done();
             });
 
           });
