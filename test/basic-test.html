@@ -102,18 +102,13 @@
       });
 
 
-      describe('basic features', function() {
-
-
-        beforeEach(createRestApi);
-
-
-        it('should register', function() {
-          expect(restApi.is).to.equal('rest-api');
-        });
-
-
-      });
+      // describe('basic features', function() {
+      //
+      //
+      //   beforeEach(createRestApi);
+      //
+      //
+      // });
 
 
       describe('resource', function() {
@@ -229,24 +224,6 @@
 
         });
       });
-
-      /*
-        TODO: Add tests for:
-
-        ## Api element
-        - Fires meaningful events
-        - Retargets changes from nested resources to root
-
-        ## Resource element
-        - Inherits props
-
-        ### Nested Resource
-        - Fetches nested collection on parent seleted item change
-        - Adds collection to parent selected item
-
-        ## Make sure
-        - All public props are tested
-      */
 
     </script>
 
