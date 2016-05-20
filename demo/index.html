@@ -52,23 +52,13 @@ limitations under the License.
     </dom-module>
 
     <template is="dom-bind" id="app">
-      <rest-api url="http://jsonplaceholder.typicode.com"
-                offset-param-name="_start"
-                limit-param-name="_limit">
-          <rest-api-resource name="albums"
-                             collection="{{albums}}"
-                             selected-item="{{currentAlbum}}"
-                             read-only>
-            <rest-api-resource name="photos"
-                               read-only>
-            </rest-api-resource>
+      <rest-api url="http://jsonplaceholder.typicode.com">
+        <rest-api-resource name="albums" collection="{{albums}}" selected-item="{{currentAlbum}}" read-only>
+          <rest-api-resource name="photos" read-only></rest-api-resource>
         </rest-api-resource>
       </rest-api>
 
-      <iron-list items="[[albums]]"
-                 selection-enabled
-                 selected-item="{{currentAlbum}}"
-                 class="flex-1">
+      <iron-list items="[[albums]]" selection-enabled selected-item="{{currentAlbum}}" class="flex-1">
         <template>
           <paper-item>[[item.title]]</paper-item>
         </template>
