@@ -1,3 +1,7 @@
+![Bower version](https://img.shields.io/bower/v/rest-api.svg)
+[![Build Status](https://travis-ci.org/platosha/rest-api.svg?branch=master)](https://travis-ci.org/platosha/rest-api)
+[![Gitter](https://badges.gitter.im/platosha/rest-api.svg)](https://gitter.im/platosha/rest-api?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 # rest-api
 
 A Polymer element providing declarative data bindings to REST API.
