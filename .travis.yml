@@ -1,7 +1,13 @@
-sudo: false
+sudo: required
 language: node_js
-node_js:
-  - "5.3"
+node_js: stable
+addons:
+  firefox: latest
+  apt:
+    sources:
+      - google-chrome
+    packages:
+      - google-chrome-stable
 cache:
   directories:
     - node_modules
@@ -12,4 +18,4 @@ install:
   - travis_retry bower install
 script:
   - npm run lint
-  - travis_retry npm test
+  - travis_retry xvfb-run npm test
