@@ -13,8 +13,7 @@
     "api"
   ],
   "main": [
-    "rest-api.html",
-    "rest-api-resource.html"
+    "rest-api.html"
   ],
   "license": "Apache-2.0",
   "homepage": "https://github.com/platosha/rest-api/",
@@ -27,7 +26,8 @@
     "package.json"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#^1.0.0"
+    "polymer": "Polymer/polymer#^1.0.0",
+    "iron-ajax": "PolymerElements/iron-ajax#^1.0.0"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
