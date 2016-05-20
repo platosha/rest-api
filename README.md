@@ -14,28 +14,40 @@ A Polymer element providing declarative data bindings to REST API.
 </rest-api>
 ```
 
-## Dependencies
+## Install
 
-Element dependencies are managed via [Bower](http://bower.io/). You can
-install that via:
+This element is distributed via [Bower](http://bower.io/). You can install
+Bower it with npm:
 
     npm install -g bower
 
-Then, go ahead and download the element's dependencies:
+Then use Bower to install `rest-api`:
+
+    bower install rest-api
+
+After running the command above, you should get `bower_components` directory
+in your project, containing `rest-api` and the dependencies.
+
+## Development Instructions
+
+### Dependencies
+
+Element dependencies are managed with Bower. Use this command to install the
+required dependencies:
 
     bower install
 
-## Running Development Server
+### Running the Development Server
 
 `<rest-api>` needs a REST API (sic) to work with. This repository includes a
-development server configuration based on
+very handy development server configuration with integrated backend, based on
 [BrowserSync](https://www.browsersync.io/) and
-[JSON Server](https://github.com/typicode/json-server), that is very handy to
-use. Just install npm dependencies:
+[JSON Server](https://github.com/typicode/json-server). Just install npm
+dependencies:
 
     npm install
 
-Then you can run it with:
+Then you can run the server with:
 
     npm start
 
@@ -46,7 +58,9 @@ You can also browse the API at `http://localhost:3000/api/`. The mock data is
 generated automatically and stored in db.json file. To regenerate the API data,
 delete the db.json file and start the server again.
 
-## Running tests
+Press `Crtl+C` to stop the development server when it is not needed.
+
+### Running Tests
 
 Navigate to the `/test` directory of the element to run its tests, e.g.:
 `http://localhost:3000/components/rest-api/test/`
