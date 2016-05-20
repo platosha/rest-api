@@ -12,13 +12,19 @@
     "rest",
     "api"
   ],
-  "main": "rest-api.html",
+  "main": [
+    "rest-api.html",
+    "rest-api-resource.html"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://github.com/platosha/rest-api/",
   "ignore": [
     "/.*",
     "/test/",
-    "/demo/"
+    "/demo/",
+    "/scripts/",
+    "index.html",
+    "package.json"
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.0.0"
