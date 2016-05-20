@@ -20,9 +20,7 @@
   "ignore": [
     "/.*",
     "/test/",
-    "/demo/",
     "/scripts/",
-    "index.html",
     "package.json"
   ],
   "dependencies": {
