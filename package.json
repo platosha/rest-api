@@ -13,13 +13,15 @@
     "faker": "^3.1.0",
     "json-server": "^0.8.10",
     "lowdb": "^0.12.5",
+    "polylint": "2.10.1",
     "underscore": "^1.8.3",
     "underscore-db": "^0.10.0"
   },
   "scripts": {
     "test": "wct",
     "start": "node scripts/server.js",
-    "prestart": "node scripts/db-create.js"
+    "prestart": "node scripts/db-create.js",
+    "lint": "polylint --input rest-api.html rest-api-resource.html"
   },
   "keywords": [
     "web-component",
