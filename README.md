@@ -52,7 +52,9 @@ Then you can run the server with:
     npm start
 
 Once running, your browser should automatically navigate to the element's page.
-By default, it is served from `http://localhost:3000/components/rest-api/`.
+By default, it is served from `http://localhost:3000/components/rest-api/`. Now
+that you have a backend, the [JSON Server Demo](http://localhost:3000/compontents/rest-api/demo/json-server.html)
+should work.
 
 You can also browse the API at `http://localhost:3000/api/`. The mock data is
 generated automatically and stored in db.json file. To regenerate the API data,
