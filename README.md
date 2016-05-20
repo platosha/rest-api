@@ -14,6 +14,10 @@ A Polymer element providing declarative data bindings to REST API.
 </rest-api>
 ```
 
+## Live demo
+
+Check the [Albums Demo](http://platosha.github.io/rest-api/components/rest-api/demo/index.html), the fully declarative albums browser, which uses [JSON Placeholder API](http://jsonplaceholder.typicode.com/).
+
 ## Install
 
 This element is distributed via [Bower](http://bower.io/). You can install
