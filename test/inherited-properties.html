@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../test-fixture/test-fixture.html">
+
+    <link rel="import" href="../rest-api.html">
+  </head>
+  <body>
+
+    <test-fixture id="rest-api">
+      <template is="dom-template">
+        <rest-api url="//rest-api.example.com"
+            params='{"custom": true}'
+            idAttribute="customIdAttribute"
+            offsetParamName="customOffsetParamName"
+            limitParamName="customLimitParamName"
+            read-only
+            bubbles>
+          <rest-api-resource name="foos" no-auto-fetch>
+            <rest-api-resource name="bars" no-auto-fetch></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <script>
+
+      var restApi, foos, bars;
+
+      function createRestApi(done) {
+        restApi = fixture('rest-api');
+        foos = Polymer.dom(restApi).children[0];
+        foosBars = Polymer.dom(foos).children[0];
+        done();
+      }
+
+      describe('resource', function() {
+
+        beforeEach(createRestApi);
+
+        it('should inherit properties', function() {
+          [
+            'params',
+            'idAttribute',
+            'offsetParamName',
+            'limitParamName',
+            'readOnly',
+            'bubbles'
+          ].forEach(function(prop) {
+            expect(foos[prop]).to.equal(restApi[prop]);
+            expect(foosBars[prop]).to.equal(restApi[prop]);
+          });
+        });
+
+      });
+
+    </script>
+
+  </body>
+</html>
