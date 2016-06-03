@@ -18,7 +18,9 @@
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
-          <rest-api-resource name="bars" no-auto-fetch></rest-api-resource>
+          <rest-api-resource name="bars" no-auto-fetch>
+            <rest-api-resource name="quxes" read-only no-auto-fetch></rest-api-resource>
+          </rest-api-resource>
         </rest-api>
       </template>
     </test-fixture>
@@ -227,7 +229,52 @@
 
           });
 
+
         });
+
+
+        describe('nested auto-fetch', function() {
+
+
+          beforeEach(createRestApi);
+
+
+          it('should auto-fetch on selected item change', function(done) {
+
+
+            var barsSubset = data.bars.filter(function(item) {
+              return item.fooId === 1;
+            });
+            serverRespondsWithJson(barsSubset);
+
+            foos.selectedItem = foos.collection[0];
+
+            afterServerResponse(foosBars, function() {
+              expectArraysToEqual(foosBars.collection, barsSubset);
+              done();
+            });
+
+          });
+
+
+          it('should not auto-fetch when no-auto-fetch is set', function(done) {
+
+            serverRespondsWithJson(data.bars);
+            bars.collection.fetch();
+            afterServerResponse(bars, function() {
+
+              bars.selectedItem = bars.collection[0];
+              expectRequest('GET', '/bars');
+              expect(server.requests.length).to.equal(2);
+              done();
+
+            });
+
+          });
+
+
+        });
+
       });
 
     </script>
