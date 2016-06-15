@@ -613,7 +613,13 @@ Example:
       if (!ajax.url) {
         return;
       }
-      ajax.params = Object.create(this.params || {});
+
+      try {
+        ajax.params = Object.create(JSON.parse(this.params) || {});
+      } catch (e) {
+        ajax.params = Object.create(this.params || {});
+      }
+
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },
