@@ -54,19 +54,38 @@ Example:
       name: String,
 
       /**
-       * Used to get 
+       * Url inherited from the parent `rest-api` element used to calculate
+       * the actual url to request data from.
        */
       parentUrl: String,
 
+      /**
+       * Computed value representing the URL to nake request to.
+       */
       url: {
         type: String,
         computed: '_computeUrl(parentUrl, _parentItem, name)'
       },
 
+
+      /**
+       * Default set of request parameters used in all API requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
       params: Object,
 
+      /**
+       * The model id attribute name. Used for model get and save API requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
       idAttribute: String,
 
+      /**
+       * The collection of data representing the retrieved data, this data will
+       * be synced with the server when updated.
+       */
       collection: {
         type: Array,
         notify: true,
@@ -76,6 +95,10 @@ Example:
         }
       },
 
+      /**
+       * An internal map holding the collection keyed by the id value of the
+       * model.
+       */
       _collectionById: {
         type: Object,
         value: function() {
@@ -83,21 +106,51 @@ Example:
         }
       },
 
+      /**
+       * Used for specifying API collection offset (the number of items to skip) when performing `lazyFetch` requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
       offsetParamName: String,
 
+      /**
+       * Used for specifying API collection limit (the maximum number of requested items) when performing `lazyFetch` requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
       limitParamName: String,
 
+      /**
+       * This flag turns off the feature that auto fetches data when the request is changed.
+       */
       noAutoFetch: Boolean,
 
+      /**
+       * Disable send any data changes to the API.
+       *
+       * Inherited from parent `rest-api` element.
+       */
       readOnly: Boolean,
 
-      bubbles: Boolean,
+      /**
+       * Enable bubbling for `error`, `request` and `response` events.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+       bubbles: Boolean,
 
+      /**
+       * The currently selected item of the collection.
+       */
       selectedItem: {
         type: Object,
         notify: true
       },
 
+      /**
+       * Used in nested request and represents the currently selected item of
+       * the parent.
+       */
       _parentItem: {
         type: Object,
         value: function() {
