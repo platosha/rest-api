@@ -139,6 +139,11 @@ Example:
        */
        bubbles: Boolean,
 
+      allowParamsOnUpdates: {
+        type: Boolean,
+        value: false
+      },
+
       /**
        * The currently selected item of the collection.
        */
@@ -530,7 +535,7 @@ Example:
 
         if (id) {
 
-          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs);
+          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs, !this.allowParamsOnUpdates);
           if (!ajax) {
             return;
           }
@@ -539,7 +544,7 @@ Example:
 
         } else {
 
-          var ajax = this._getAjaxElement(null, attrs);
+          var ajax = this._getAjaxElement(null, attrs, !this.allowParamsOnUpdates);
           if (!ajax) {
             return;
           }
@@ -575,7 +580,7 @@ Example:
           return;
         }
 
-        var ajax = this._getAjaxElement(this._getUrlForItemId(id));
+        var ajax = this._getAjaxElement(this._getUrlForItemId(id), {}, !this.allowParamsOnUpdates);
         if (!ajax) {
           return;
         }
@@ -607,17 +612,19 @@ Example:
       return collection;
     },
 
-    _getAjaxElement: function(url, data) {
+    _getAjaxElement: function(url, data, noparams) {
       var ajax = this.$.ajax;
       ajax.url = url || this.url;
       if (!ajax.url) {
         return;
       }
 
-      try {
-        ajax.params = Object.create(JSON.parse(this.params) || {});
-      } catch (e) {
-        ajax.params = Object.create(this.params || {});
+      if(!noparams) {
+        try {
+          ajax.params = Object.create(JSON.parse(this.params) || {});
+        } catch (e) {
+          ajax.params = Object.create(this.params || {});
+        }
       }
 
       ajax.body = data ? JSON.stringify(data) : '';
