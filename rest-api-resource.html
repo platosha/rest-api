@@ -54,7 +54,7 @@ Example:
       name: String,
 
       /**
-       * Used to get 
+       * Used to get
        */
       parentUrl: String,
 
@@ -163,7 +163,8 @@ Example:
 
     observers: [
       '_collectionChanged(collection.*)',
-      '_autoFetch(url, collection)'
+      '_autoFetch(url, collection)',
+      '_autoFetch(url, collection, params)'
     ],
 
     _isNested: function() {
