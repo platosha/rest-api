@@ -165,9 +165,11 @@
             serverRespondsWithJson(data.bars);
 
             foos.set('params', {baz: 1});
-
             expectRequest('GET', '/foos?baz=1');
-            expect(server.requests.length).to.equal(2);
+
+            foos.set('params.baz', 2);
+            expectRequest('GET', '/foos?baz=2');
+            expect(server.requests.length).to.equal(3);
 
           });
 
