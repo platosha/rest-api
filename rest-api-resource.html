@@ -67,13 +67,22 @@ Example:
         computed: '_computeUrl(parentUrl, _parentItem, name)'
       },
 
+      /**
+       * The set of request parameters used for this resource’s API requests.
+       */
+      params: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
 
       /**
        * Default set of request parameters used in all API requests.
        *
-       * Inherited from parent `rest-api` element.
+       * Inherited from the `params` parameter of the parent `rest-api` element.
        */
-      params: Object,
+      _rootParams: Object,
 
       /**
        * The model id attribute name. Used for model get and save API requests.
@@ -189,7 +198,6 @@ Example:
 
     attached: function() {
       var inheritedProperties = [
-        'params',
         'idAttribute',
         'offsetParamName',
         'limitParamName',
@@ -204,6 +212,7 @@ Example:
       }
 
       this.parentUrl = this.parentElement.url;
+      this._rootParams = this._isNested() ? this.parentElement._rootParams : this.parentElement.params;
 
       if (this._isNested()) {
         this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
@@ -216,7 +225,7 @@ Example:
 
     observers: [
       '_collectionChanged(collection.*)',
-      '_autoFetch(url, collection)'
+      '_autoFetch(url, collection, params)'
     ],
 
     _isNested: function() {
@@ -613,7 +622,10 @@ Example:
       if (!ajax.url) {
         return;
       }
-      ajax.params = Object.create(this.params || {});
+      ajax.params = Object.create(this._rootParams || {});
+      Object.getOwnPropertyNames(this.params).forEach(function(prop) {
+        ajax.params[prop] = this.params[prop];
+      }, this);
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },

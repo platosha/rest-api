@@ -160,6 +160,18 @@
           });
 
 
+          it('should auto-fetch collection on params change', function() {
+
+            serverRespondsWithJson(data.bars);
+
+            foos.set('params', {baz: 1});
+
+            expectRequest('GET', '/foos?baz=1');
+            expect(server.requests.length).to.equal(2);
+
+          });
+
+
           it('should create new item on collection push', function(done) {
 
             var newObj = {newKey: 'foo'};
