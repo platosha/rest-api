@@ -50,7 +50,8 @@
             'offsetParamName',
             'limitParamName',
             'readOnly',
-            'bubbles'
+            'bubbles',
+            'allowNonGetParams'
           ].forEach(function(prop) {
             expect(foos[prop]).to.equal(restApi[prop]);
             expect(foosBars[prop]).to.equal(restApi[prop]);
