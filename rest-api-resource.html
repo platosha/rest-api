@@ -76,6 +76,13 @@ Example:
       params: Object,
 
       /**
+       * Allow the use of query parameters on other requests than GET requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      allowNonGetParams: Boolean,
+
+      /**
        * The model id attribute name. Used for model get and save API requests.
        *
        * Inherited from parent `rest-api` element.
@@ -137,12 +144,7 @@ Example:
        *
        * Inherited from parent `rest-api` element.
        */
-       bubbles: Boolean,
-
-      allowParamsOnUpdates: {
-        type: Boolean,
-        value: false
-      },
+      bubbles: Boolean,
 
       /**
        * The currently selected item of the collection.
@@ -199,7 +201,8 @@ Example:
         'offsetParamName',
         'limitParamName',
         'readOnly',
-        'bubbles'
+        'bubbles',
+        'allowNonGetParams'
       ];
 
       for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
@@ -535,7 +538,7 @@ Example:
 
         if (id) {
 
-          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs, !this.allowParamsOnUpdates);
+          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs, !this.allowNonGetParams);
           if (!ajax) {
             return;
           }
@@ -544,7 +547,7 @@ Example:
 
         } else {
 
-          var ajax = this._getAjaxElement(null, attrs, !this.allowParamsOnUpdates);
+          var ajax = this._getAjaxElement(null, attrs, !this.allowNonGetParams);
           if (!ajax) {
             return;
           }
@@ -580,7 +583,7 @@ Example:
           return;
         }
 
-        var ajax = this._getAjaxElement(this._getUrlForItemId(id), {}, !this.allowParamsOnUpdates);
+        var ajax = this._getAjaxElement(this._getUrlForItemId(id), {}, !this.allowNonGetParams);
         if (!ajax) {
           return;
         }
@@ -619,12 +622,9 @@ Example:
         return;
       }
 
-      if(!noparams) {
-        try {
-          ajax.params = Object.create(JSON.parse(this.params) || {});
-        } catch (e) {
-          ajax.params = Object.create(this.params || {});
-        }
+      ajax.params = Object.create(this.params || {});
+      if(noparams) {
+        ajax.params = {};
       }
 
       ajax.body = data ? JSON.stringify(data) : '';

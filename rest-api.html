@@ -48,6 +48,15 @@ Example:
        */
       params: Object,
 
+
+      /**
+       * Allow the use of query parameters on other requests than GET requests.
+       */
+      allowNonGetParams: {
+        type: Boolean,
+        value: false
+      },
+
       /**
        * The model id attribute name. Used for model get and save API requests.
        *
