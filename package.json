@@ -18,7 +18,7 @@
     "underscore-db": "^0.10.0"
   },
   "scripts": {
-    "test": "wct",
+    "test": "wct --skip-selenium-install",
     "start": "node scripts/server.js",
     "prestart": "node scripts/db-create.js",
     "lint": "polylint --input rest-api.html rest-api-resource.html"
