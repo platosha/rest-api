@@ -54,10 +54,6 @@
 
       var restApi, foos, foosBars, bars, server;
 
-      function createRestApiWithParams(done) {
-        createRestApi(done, true);
-      }
-
       function createRestApi(done) {
         var fixtureProperties = {apiUrl: data.apiUrl, apiParams: {customparam: 'value'}};
         restApi = fixture('rest-api', fixtureProperties);
@@ -99,134 +95,69 @@
 
       describe('resource', function() {
 
-       describe('CRUD-WITH-PARAMS', function() {
+       describe('CRUD urls and allowNonGetParams', function() {
 
+          beforeEach(createRestApi);
 
-          beforeEach(createRestApiWithParams);
+          function expectRequestToHaveCustomParam(customParamIsPresent, method, url, body) {
+            expectRequest(
+              method,
+              customParamIsPresent ? url + '?customparam=value' : url,
+              body
+            );
+          }
 
+          function testCrudUrls(allowNonGetParams) {
 
-          it('should auto-fetch collection on name change with params', function(done) {
+            beforeEach(function() {
+              foos.allowNonGetParams = allowNonGetParams;
+            });
 
-            serverRespondsWithJson(data.bars);
+            it('should auto-fetch collection on name change', function() {
+              foos.name = 'bars';
+              expectRequest('GET', '/bars?customparam=value');
+            });
 
-            foos.name = 'bars';
+            it('should auto-fetch collection on params change', function() {
+              foos.set('params', {baz: 1});
+              expectRequest('GET', '/foos?baz=1&customparam=value');
+              foos.set('params.baz', 2);
+              expectRequest('GET', '/foos?baz=2&customparam=value');
+              expect(server.requests.length).to.equal(3);
+            });
 
-            expectRequest('GET', '/bars?customparam=value');
-            afterServerResponse(foos, function() {done();});
+            it('should create new item on collection push', function() {
+              var newObj = {newKey: 'foo'};
+              foos.push('collection', newObj);
+              expectRequestToHaveCustomParam(allowNonGetParams, 'POST', '/foos', newObj);
+            });
+
+            it('should update the item on key change', function() {
+              var newKey = 'foo';
+              foos.set('collection.0.newKey', newKey)
+              expectRequestToHaveCustomParam(allowNonGetParams, 'PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
+            });
+
+            it('should update the item on replace', function() {
+              var newItem = cloneObject(data.foos[0]);
+              newItem.newKey = 'foo';
+              foos.set('collection.0', newItem);
+              expectRequestToHaveCustomParam(allowNonGetParams, 'PUT', '/foos/' + data.foos[0].id, newItem);
+            });
+
+            it('should destroy item', function() {
+              foos.pop('collection');
+              expectRequestToHaveCustomParam(allowNonGetParams, 'DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
+            });
+
+          }
+
+          describe('by default', function() {
+            testCrudUrls();
           });
 
-          it('should auto-fetch collection on name change with params and allowNonGetParams', function(done) {
-
-            serverRespondsWithJson(data.bars);
-
-            foos.allowNonGetParams = true;
-            foos.name = 'bars';
-
-            expectRequest('GET', '/bars?customparam=value');
-            afterServerResponse(foos, function() {done();});
-          });
-
-
-
-          it('should create new item on collection push with params', function(done) {
-
-            var newObj = {newKey: 'foo'};
-            var newObjOnServer = cloneObject(newObj);
-            newObjOnServer.id = 4;
-            serverRespondsWithJson(newObjOnServer);
-
-            foos.push('collection', newObj);
-
-            expectRequest('POST', '/foos', newObj);
-            afterServerResponse(foos, function() {done();});
-          });
-
-
-          it('should create new item on collection push with params and allowNonGetParams', function(done) {
-
-            var newObj = {newKey: 'foo'};
-            var newObjOnServer = cloneObject(newObj);
-            newObjOnServer.id = 4;
-            serverRespondsWithJson(newObjOnServer);
-
-            foos.allowNonGetParams = true;
-            foos.push('collection', newObj);
-
-            expectRequest('POST', '/foos?customparam=value', newObj);
-            afterServerResponse(foos, function() {done();});
-          });
-
-
-          it('should update the item on key change with params', function(done) {
-
-            var newKey = 'foo';
-            var newKeyOnServer = 'bar';
-            serverRespondsWithJson({newKey: newKeyOnServer});
-
-            foos.set('collection.0.newKey', newKey)
-
-            expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
-            afterServerResponse(foos, function() {done();});
-          });
-
-          it('should update the item on key change with params and allowNonGetParams', function(done) {
-
-            var newKey = 'foo';
-            var newKeyOnServer = 'bar';
-            serverRespondsWithJson({newKey: newKeyOnServer});
-
-            foos.allowNonGetParams = true;
-            foos.set('collection.0.newKey', newKey)
-
-            expectRequest('PATCH', '/foos/' + data.foos[0].id + '?customparam=value', {newKey: newKey});
-            afterServerResponse(foos, function() {done();});
-          });
-
-          it('should update the item on replace with params', function(done) {
-
-            var newItem = cloneObject(data.foos[0]);
-            newItem.newKey = 'foo';
-            var newItemOnServer = cloneObject(newItem);
-            newItemOnServer.newKey = 'bar';
-            serverRespondsWithJson(newItemOnServer);
-
-            foos.set('collection.0', newItem);
-
-            expectRequest('PUT', '/foos/' + data.foos[0].id, newItem);
-            afterServerResponse(foos, function() {done();});
-          });
-
-          it('should update the item on replace with params and allowNonGetParams', function(done) {
-
-            var newItem = cloneObject(data.foos[0]);
-            newItem.newKey = 'foo';
-            var newItemOnServer = cloneObject(newItem);
-            newItemOnServer.newKey = 'bar';
-            serverRespondsWithJson(newItemOnServer);
-
-            foos.allowNonGetParams = true;
-            foos.set('collection.0', newItem);
-
-            expectRequest('PUT', '/foos/' + data.foos[0].id + '?customparam=value', newItem);
-            afterServerResponse(foos, function() {done();});
-          });
-
-
-          it('should destroy item with params', function(done) {
-
-            foos.pop('collection');
-
-            expectRequest('DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
-            afterServerResponse(foos, function() {done();});
-          });
-
-          it('should destroy item with params and allowNonGetParams', function(done) {
-
-            foos.allowNonGetParams = true;
-            foos.pop('collection');
-
-            expectRequest('DELETE', '/foos/' + data.foos[data.foos.length - 1].id + '?customparam=value');
-            afterServerResponse(foos, function() {done();});
+          describe('with allowNonGetParams', function() {
+            testCrudUrls(true);
           });
 
         });
