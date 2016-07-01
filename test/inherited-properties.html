@@ -45,7 +45,6 @@
 
         it('should inherit properties', function() {
           [
-            'params',
             'idAttribute',
             'offsetParamName',
             'limitParamName',
@@ -55,6 +54,12 @@
             expect(foos[prop]).to.equal(restApi[prop]);
             expect(foosBars[prop]).to.equal(restApi[prop]);
           });
+        });
+
+        it('should inherit root params', function() {
+          expect(foos._rootParams).to.deep.equal({custom: true});
+          expect(foos._getAjaxElement().params.custom).to.equal(true);
+          expect(foosBars._rootParams).to.deep.equal({custom: true});
         });
 
       });
