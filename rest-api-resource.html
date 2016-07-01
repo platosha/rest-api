@@ -85,6 +85,13 @@ Example:
       _rootParams: Object,
 
       /**
+       * Allow the use of query parameters on other requests than GET requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      allowNonGetParams: Boolean,
+
+      /**
        * The model id attribute name. Used for model get and save API requests.
        *
        * Inherited from parent `rest-api` element.
@@ -146,7 +153,7 @@ Example:
        *
        * Inherited from parent `rest-api` element.
        */
-       bubbles: Boolean,
+      bubbles: Boolean,
 
       /**
        * The currently selected item of the collection.
@@ -202,7 +209,8 @@ Example:
         'offsetParamName',
         'limitParamName',
         'readOnly',
-        'bubbles'
+        'bubbles',
+        'allowNonGetParams'
       ];
 
       for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
@@ -539,7 +547,7 @@ Example:
 
         if (id) {
 
-          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs);
+          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs, !this.allowNonGetParams);
           if (!ajax) {
             return;
           }
@@ -548,7 +556,7 @@ Example:
 
         } else {
 
-          var ajax = this._getAjaxElement(null, attrs);
+          var ajax = this._getAjaxElement(null, attrs, !this.allowNonGetParams);
           if (!ajax) {
             return;
           }
@@ -584,7 +592,7 @@ Example:
           return;
         }
 
-        var ajax = this._getAjaxElement(this._getUrlForItemId(id));
+        var ajax = this._getAjaxElement(this._getUrlForItemId(id), {}, !this.allowNonGetParams);
         if (!ajax) {
           return;
         }
@@ -616,16 +624,22 @@ Example:
       return collection;
     },
 
-    _getAjaxElement: function(url, data) {
+    _getAjaxElement: function(url, data, noparams) {
       var ajax = this.$.ajax;
       ajax.url = url || this.url;
       if (!ajax.url) {
         return;
       }
-      ajax.params = Object.create(this._rootParams || {});
-      Object.getOwnPropertyNames(this.params).forEach(function(prop) {
-        ajax.params[prop] = this.params[prop];
-      }, this);
+
+      if(noparams) {
+        ajax.params = {};
+      } else {
+        ajax.params = Object.create(this._rootParams || {});
+        Object.getOwnPropertyNames(this.params).forEach(function(prop) {
+          ajax.params[prop] = this.params[prop];
+        }, this);
+      }
+
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },

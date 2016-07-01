@@ -1,0 +1,169 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../test-fixture/test-fixture.html">
+    <link rel="import" href="../rest-api.html">
+  </head>
+  <body>
+
+    <test-fixture id="rest-api">
+      <template is="dom-template">
+        <rest-api url="{{apiUrl}}" params="{{apiParams}}">
+          <rest-api-resource name="foos">
+            <rest-api-resource name="bars" read-only></rest-api-resource>
+          </rest-api-resource>
+          <rest-api-resource name="bars" no-auto-fetch>
+            <rest-api-resource name="quxes" read-only no-auto-fetch></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <script>
+
+      var data = {
+        apiUrl: '//rest-api.example.com',
+        foos: [
+          {id: 1},
+          {id: 2},
+          {id: 3}
+        ],
+        bars: [
+          {id: 11, fooId: 1},
+          {id: 12, fooId: 1},
+          {id: 13, fooId: 2}
+        ]
+      };
+
+      function cloneObject(obj) {
+        var clone = {};
+        Object.getOwnPropertyNames(obj).forEach(function(prop) {
+          clone[prop] = obj[prop];
+        });
+        return clone;
+      }
+
+      function getApiUrl(url) {
+        return data.apiUrl + url;
+      }
+
+      var restApi, foos, foosBars, bars, server;
+
+      function createRestApi(done) {
+        var fixtureProperties = {apiUrl: data.apiUrl, apiParams: {customparam: 'value'}};
+        restApi = fixture('rest-api', fixtureProperties);
+        foos = Polymer.dom(restApi).children[0];
+        bars = Polymer.dom(restApi).children[1];
+        foosBars = Polymer.dom(foos).children[0];
+        if (done) {
+          afterServerResponse(foos, done);
+        }
+      }
+
+      function afterServerResponse(target, callback) {
+        var handler = function(event) {
+          target.removeEventListener('response', handler);
+          target.async(callback, 1);
+        };
+        target.addEventListener('response', handler);
+        server.respond();
+      }
+
+      function serverRespondsWithJson(data) {
+        server.respondWith([200, {"Content-Type": "application/json"}, JSON.stringify(data)]);
+      }
+
+      function expectRequest(method, url, body) {
+        var request = server.requests[server.requests.length - 1];
+        expect(request.method).to.equal(method);
+        expect(request.url).to.equal(getApiUrl(url));
+        if (body) {
+          expect(request.requestBody).to.equal(JSON.stringify(body));
+        }
+      }
+
+      beforeEach(function() {
+        server = sinon.fakeServer.create();
+        // Respond data.foos by default
+        serverRespondsWithJson(data.foos);
+      });
+
+      describe('resource', function() {
+
+       describe('CRUD urls and allowNonGetParams', function() {
+
+          beforeEach(createRestApi);
+
+          function expectRequestToHaveCustomParam(customParamIsPresent, method, url, body) {
+            expectRequest(
+              method,
+              customParamIsPresent ? url + '?customparam=value' : url,
+              body
+            );
+          }
+
+          function testCrudUrls(allowNonGetParams) {
+
+            beforeEach(function() {
+              foos.allowNonGetParams = allowNonGetParams;
+            });
+
+            it('should auto-fetch collection on name change', function() {
+              foos.name = 'bars';
+              expectRequest('GET', '/bars?customparam=value');
+            });
+
+            it('should auto-fetch collection on params change', function() {
+              foos.set('params', {baz: 1});
+              expectRequest('GET', '/foos?baz=1&customparam=value');
+              foos.set('params.baz', 2);
+              expectRequest('GET', '/foos?baz=2&customparam=value');
+              expect(server.requests.length).to.equal(3);
+            });
+
+            it('should create new item on collection push', function() {
+              var newObj = {newKey: 'foo'};
+              foos.push('collection', newObj);
+              expectRequestToHaveCustomParam(allowNonGetParams, 'POST', '/foos', newObj);
+            });
+
+            it('should update the item on key change', function() {
+              var newKey = 'foo';
+              foos.set('collection.0.newKey', newKey)
+              expectRequestToHaveCustomParam(allowNonGetParams, 'PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
+            });
+
+            it('should update the item on replace', function() {
+              var newItem = cloneObject(data.foos[0]);
+              newItem.newKey = 'foo';
+              foos.set('collection.0', newItem);
+              expectRequestToHaveCustomParam(allowNonGetParams, 'PUT', '/foos/' + data.foos[0].id, newItem);
+            });
+
+            it('should destroy item', function() {
+              foos.pop('collection');
+              expectRequestToHaveCustomParam(allowNonGetParams, 'DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
+            });
+
+          }
+
+          describe('by default', function() {
+            testCrudUrls();
+          });
+
+          describe('with allowNonGetParams', function() {
+            testCrudUrls(true);
+          });
+
+        });
+      });
+
+    </script>
+
+  </body>
+</html>
