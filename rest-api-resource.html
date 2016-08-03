@@ -166,7 +166,7 @@ Example:
       /**
        * The id of the currently selected item of the collection.
        */
-      selectedId: {
+      selectedItemId: {
         type: String,
         notify: true,
         observer: '_changedSelectedId'
@@ -267,8 +267,8 @@ Example:
       return url + '/' + name;
     },
 
-    _changedSelectedId: function(selectedId) {
-      this.selectedItem = this._collectionById[selectedId];
+    _changedSelectedId: function(selectedItemId) {
+      this.selectedItem = this._collectionById[selectedItemId];
     },
 
     _forEachAddedAndRemovedItem: function(changes, addedItemCallback, removedItemCallback) {
@@ -446,7 +446,7 @@ Example:
     _replaceCollection: function(items) {
       this._spliceCollection(0, this.collection.length, items);
 
-      if(this.selectedId) this._changedSelectedId(this.selectedId);
+      if(this.selectedItemId) this._changedSelectedId(this.selectedItemId);
     },
 
     _getItemId: function(item) {
