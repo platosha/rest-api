@@ -160,7 +160,8 @@ Example:
        */
       selectedItem: {
         type: Object,
-        notify: true
+        notify: true,
+        observer: '_selectedItemChanged'
       },
 
       /**
@@ -482,7 +483,7 @@ Example:
       this._skipAutoSave = true;
 
       var key = this._polymerCollection.getKey(item);
-      this.set(['collection', key, name, path], value);
+      this.notifyPath(['collection', key, name, path], value);
 
       this._skipAutoSave = false;
 
@@ -658,10 +659,20 @@ Example:
     },
 
     _parentSelectedItemChanged: function(event) {
+      // Only handle the simple replace
+      if (event.detail.path) {
+        return;
+      }
       this._skipAutoFetch = true;
       this._parentItem = event.detail.value;
       this._skipAutoFetch = false;
-      this.set('collection', this._parentItem && this._parentItem[this.name] || []);
+      if (this._parentItem) {
+        var newCollection = [];
+        // We only do usual set for the parent item here, as the change
+        // notification will be done by the _nestedCollectionChanged observer.
+        this._parentItem[this.name] = newCollection;
+        this.set('collection', newCollection);
+      }
     },
 
     _effectiveChildrenChanged: function(changeset) {
@@ -694,6 +705,15 @@ Example:
 
     _transmitAjaxEvent: function(event) {
       this.fire(event.type, event.detail, {bubbles: this.bubbles});
+    },
+
+    _selectedItemChanged: function(selectedItem) {
+      var key = this._polymerCollection.getKey(selectedItem);
+      if (key) {
+        this.linkPaths('selectedItem', 'collection.' + key);
+      } else {
+        this.unlinkPaths('selectedItem');
+      }
     }
 
   });

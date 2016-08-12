@@ -21,6 +21,7 @@ limitations under the License.
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>rest-api Demo</title>
     <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../../paper-input/paper-input.html">
     <link rel="import" href="common.html">
     <style>
       body {
@@ -51,8 +52,9 @@ limitations under the License.
         </style>
         <template is="dom-if" if="[[book]]">
           <article class="book">
-            <h2>[[book.title]]</h2>
-            <p><em>by [[book.author]], [[book.year]]</em></p>
+            <paper-input label="Title" value="{{book.title}}"></paper-input>
+            <paper-input label="Year" type="number" min="1439" max="[[currentYear]]" value="{{book.year}}"></paper-input>
+            <paper-input label="Author" value="{{book.author}}"></paper-input>
             <template is="dom-if" if="[[book.reviews]]">
               <h3>Reviews ([[book.reviews.length]])</h3>
               <template is="dom-repeat" items="[[book.reviews]]" as="review">
@@ -74,6 +76,9 @@ limitations under the License.
             is: 'app-book-view',
             properties: {
               book: Object
+            },
+            get currentYear() {
+              return new Date().getFullYear();
             }
           });
         });
@@ -116,7 +121,7 @@ limitations under the License.
       </iron-list>
 
       <h3>Selected book</h3>
-      <app-book-view book="[[currentBook]]"></app-book-view>
+      <app-book-view book="{{currentBook}}"></app-book-view>
 
       <script>
 

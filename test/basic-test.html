@@ -200,11 +200,31 @@
             var newKeyOnServer = 'bar';
             serverRespondsWithJson({newKey: newKeyOnServer});
 
-            foos.set('collection.0.newKey', newKey)
+            foos.set('collection.0.newKey', newKey);
 
             expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
             afterServerResponse(foos, function() {
               expect(foos.collection.length).to.equal(data.foos.length);
+              expect(foos.collection[0].newKey).to.equal(newKey);
+              done();
+            });
+
+          });
+
+
+          it('should update the selected item on key change', function(done) {
+
+            var newKey = 'foo';
+            var newKeyOnServer = 'bar';
+            serverRespondsWithJson({newKey: newKeyOnServer});
+            foos.set('selectedItem', foos.collection[0]);
+
+            foos.set('selectedItem.newKey', newKey);
+
+            expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
+            afterServerResponse(foos, function() {
+              expect(foos.collection.length).to.equal(data.foos.length);
+              expect(foos.selectedItem.newKey).to.equal(newKey);
               expect(foos.collection[0].newKey).to.equal(newKey);
               done();
             });
@@ -254,7 +274,6 @@
 
 
           it('should auto-fetch on selected item change', function(done) {
-
 
             var barsSubset = data.bars.filter(function(item) {
               return item.fooId === 1;
