@@ -1,0 +1,78 @@
+<!--
+@license
+Copyright 2015 Anton Platonov <platosha@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+
+<script>
+window.RestApi = window.RestApi || {};
+
+/**
+  `RestApi.AbstractTransportBehavior` describes a transport API used by the
+`<rest-api>` elements.
+
+This is mainly for the API documentation purpose. It is not required neither to
+inherit this behavior nor to import it in your custom transport elements.
+
+Make sure your custom transport element implements the following API.
+
+@polymerBehavior
+*/
+
+  RestApi.AbstractTransportBehavior = {
+
+    properties: {
+
+      /**
+       * The HTTP method of the upcoming request.
+       */
+      method: String,
+
+      /**
+       * The URL of the request.
+       */
+      url: String,
+
+      /**
+       * The params to serialize in the URL.
+       */
+      params: Object,
+
+      /**
+       * The request headers.
+       */
+      headers: Object,
+
+      /**
+       * The request body. Serialized JSON strings are used for now.
+       */
+      body: String,
+
+    },
+
+    /**
+      * Performs a request using the specified properties.
+      *
+      * Called after all the properties are set.
+      * @return {{
+      *   completes: Promise,
+      *   abort: function()
+      * }}
+      */
+    generateRequest: function() {
+      throw new Error('Not implemented');
+    }
+  }
+</script> `xx`

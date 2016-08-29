@@ -59,14 +59,18 @@
         });
 
         it('should inherit root params', function() {
+          var request = foos.collection.fetch();
+
           expect(foos._rootParams).to.deep.equal({custom: true});
-          expect(foos._getAjaxElement().params.custom).to.equal(true);
+          expect(foos._transportElement.params.custom).to.equal(true);
           expect(foosBars._rootParams).to.deep.equal({custom: true});
         });
 
         it('should inherit root headers', function() {
+          var request = foos.collection.fetch();
+
           expect(foos._getComposedHeaders()).to.have.property('X-Custom', true);
-          expect(foos._getAjaxElement().headers['X-Custom']).to.equal(true);
+          expect(foos._transportElement.headers['X-Custom']).to.equal(true);
           expect(foosBars._getComposedHeaders()).to.have.property('X-Custom', true);
         });
 

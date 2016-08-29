@@ -36,6 +36,8 @@
 
     <script>
 
+      var restApi, foos, foosBars, bars, server;
+
       var data = {
         apiUrl: '//rest-api.example.com',
         foos: [
@@ -65,24 +67,22 @@
         return data.apiUrl + url;
       }
 
-      var restApi, foos, foosBars, bars, server;
-
       function createRestApi(done) {
         restApi = fixture('rest-api', {apiUrl: data.apiUrl});
         foos = Polymer.dom(restApi).children[0];
         bars = Polymer.dom(restApi).children[1];
         foosBars = Polymer.dom(foos).children[0];
         if (done) {
-          afterServerResponse(foos, done);
+          afterServerResponse(done);
         }
       }
 
-      function afterServerResponse(target, callback) {
+      function afterServerResponse(callback) {
         var handler = function(event) {
-          target.removeEventListener('response', handler);
-          target.async(callback, 1);
+          restApi.removeEventListener('response', handler);
+          restApi.async(callback, 1);
         };
-        target.addEventListener('response', handler);
+        restApi.addEventListener('response', handler);
         server.respond();
       }
 
@@ -129,8 +129,8 @@
             expectRequest('GET', '/foos');
             expect(server.requests.length).to.equal(1);
 
-            afterServerResponse(foos, function() {
-              expect(foos.collection).to.deep.have.members(data.foos);
+            afterServerResponse(function() {
+              expect(foos.collection).to.deep.include.members(data.foos);
               done();
             });
 
@@ -155,7 +155,7 @@
             expectRequest('GET', '/bars');
             expect(server.requests.length).to.equal(2);
 
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expectArraysToEqual(foos.collection, data.bars);
               done();
             });
@@ -188,7 +188,7 @@
 
             expectRequest('POST', '/foos', newObj);
 
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expect(foos.collection.length).to.equal(data.foos.length + 1);
               expect(foos.collection[data.foos.length]).to.deep.equal(newObjOnServer);
               done();
@@ -206,7 +206,7 @@
             foos.set('collection.0.newKey', newKey);
 
             expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expect(foos.collection.length).to.equal(data.foos.length);
               expect(foos.collection[0].newKey).to.equal(newKey);
               done();
@@ -225,7 +225,7 @@
             foos.set('selectedItem.newKey', newKey);
 
             expectRequest('PATCH', '/foos/' + data.foos[0].id, {newKey: newKey});
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expect(foos.collection.length).to.equal(data.foos.length);
               expect(foos.selectedItem.newKey).to.equal(newKey);
               expect(foos.collection[0].newKey).to.equal(newKey);
@@ -246,7 +246,7 @@
             foos.set('collection.0', newItem);
 
             expectRequest('PUT', '/foos/' + data.foos[0].id, newItem);
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expect(foos.collection.length).to.equal(data.foos.length);
               expect(foos.collection[0]).to.deep.equal(newItemOnServer);
               done();
@@ -259,7 +259,7 @@
             foos.pop('collection');
 
             expectRequest('DELETE', '/foos/' + data.foos[data.foos.length - 1].id);
-            afterServerResponse(foos, function() {
+            afterServerResponse(function() {
               expect(foos.collection.length).to.equal(data.foos.length - 1);
               done();
             });
@@ -285,7 +285,7 @@
 
             foos.selectedItem = foos.collection[0];
 
-            afterServerResponse(foosBars, function() {
+            afterServerResponse(function() {
               expectArraysToEqual(foosBars.collection, barsSubset);
               done();
             });
@@ -297,7 +297,7 @@
 
             serverRespondsWithJson(data.bars);
             bars.collection.fetch();
-            afterServerResponse(bars, function() {
+            afterServerResponse(function() {
 
               bars.selectedItem = bars.collection[0];
               expectRequest('GET', '/bars');
@@ -322,7 +322,7 @@
             foosBars = Polymer.dom(foos).children[0];
             serverRespondsWithJson(data.foos[1]);
             if (done) {
-              afterServerResponse(foos, done);
+              afterServerResponse(done);
             }
           }
 
@@ -337,7 +337,7 @@
               expectRequest('GET', '/foos/2');
               expect(server.requests.length).to.equal(1);
 
-              afterServerResponse(foos, function() {
+              afterServerResponse(function() {
                 expect(foos.collection.length).to.equal(1);
                 expect(foos.collection[0]).to.contain(data.foos[1]);
                 expect(foos.selectedItem).to.contain(data.foos[1]);
@@ -365,7 +365,7 @@
               expectRequest('GET', '/bars/2');
               expect(server.requests.length).to.equal(3);
 
-              afterServerResponse(foos, function() {
+              afterServerResponse(function() {
                 expect(foos.collection.length).to.equal(1);
                 expect(foos.collection[0]).to.contain(data.bars[1]);
                 expect(foos.selectedItem).to.contain(data.bars[1]);
@@ -384,7 +384,7 @@
               expectRequest('GET', '/foos/1');
               expect(server.requests.length).to.equal(3);
 
-              afterServerResponse(foos, function() {
+              afterServerResponse(function() {
                 expect(foos.collection.length).to.equal(1);
                 expect(foos.collection[0]).to.contain(data.foos[0]);
                 expect(foos.selectedItem).to.contain(data.foos[0]);
@@ -424,7 +424,7 @@
 
               foos.selectedItemId = data.foos[0].id;
 
-              afterServerResponse(foos, function() {
+              afterServerResponse(function() {
                 expect(foos.collection[0]).to.contain(newObj);
                 expect(foos.selectedItem).to.contain(newObj);
                 done();
@@ -440,7 +440,7 @@
 
               foos.collection.fetchItem(2);
 
-              afterServerResponse(foos, function() {
+              afterServerResponse(function() {
                 expect(foos.collection[0]).to.contain(newObj);
                 expect(foos.selectedItem).to.contain(newObj);
                 done();

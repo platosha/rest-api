@@ -26,6 +26,8 @@
 
     <script>
 
+      var restApi, foos, foosBars, bars, server;
+
       var data = {
         apiUrl: '//rest-api.example.com',
         foos: [
@@ -52,8 +54,6 @@
         return data.apiUrl + url;
       }
 
-      var restApi, foos, foosBars, bars, server;
-
       function createRestApi(done) {
         var fixtureProperties = {apiUrl: data.apiUrl, apiParams: {customparam: 'value'}};
         restApi = fixture('rest-api', fixtureProperties);
@@ -61,16 +61,16 @@
         bars = Polymer.dom(restApi).children[1];
         foosBars = Polymer.dom(foos).children[0];
         if (done) {
-          afterServerResponse(foos, done);
+          afterServerResponse(done);
         }
       }
 
-      function afterServerResponse(target, callback) {
+      function afterServerResponse(callback) {
         var handler = function(event) {
-          target.removeEventListener('response', handler);
-          target.async(callback, 1);
+          restApi.removeEventListener('response', handler);
+          restApi.async(callback, 1);
         };
-        target.addEventListener('response', handler);
+        restApi.addEventListener('response', handler);
         server.respond();
       }
 

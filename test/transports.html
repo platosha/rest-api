@@ -1,0 +1,137 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../test-fixture/test-fixture.html">
+    <link rel="import" href="../rest-api.html">
+    <link rel="import" href="../../iron-ajax/iron-ajax.html">
+  </head>
+  <body>
+
+    <test-fixture id="default-transport">
+      <template is="dom-template">
+        <rest-api url="//rest-api.example.com">
+          <rest-api-resource name="foos">
+            <rest-api-resource name="bars" read-only></rest-api-resource>
+          </rest-api-resource>
+          <rest-api-resource name="bars" read-only></rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <test-fixture id="custom-transports">
+      <template is="dom-template">
+        <rest-api url="//rest-api.example.com">
+          <rest-api-resource name="foos">
+            <rest-api-resource name="bars" read-only></rest-api-resource>
+            <iron-ajax rest-api-transport content-type="applicaiton/json" bubbles></iron-ajax>
+          </rest-api-resource>
+          <rest-api-resource name="bars" read-only></rest-api-resource>
+          <iron-ajax rest-api-transport content-type="applicaiton/json" bubbles></iron-ajax>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <script>
+
+      var restApi, foos, foosBars, server;
+
+      function createRestApi(fixtureId, done) {
+
+        restApi = fixture(fixtureId);
+        foos = Polymer.dom(restApi).children[0];
+        bars = Polymer.dom(restApi).children[1];
+        foosBars = Polymer.dom(foos).children[0];
+        if (done) {
+          afterServerResponse(done);
+        }
+      }
+
+      beforeEach(function() {
+        server = sinon.fakeServer.create();
+        server.respondWith([200, {"Content-Type": "application/json"}, JSON.stringify([])]);
+      });
+
+
+      describe('transports', function() {
+
+        function expectResourceToRequestFromTransport(resource) {
+          var spy = sinon.spy(resource._transportElement, 'generateRequest');
+          resource._request('GET', '/');
+          expect(spy.called).to.be.true;
+          resource._transportElement.generateRequest.restore();
+        }
+
+        function testTransportsInvoked() {
+          it('should invoke resource transports', function() {
+            expectResourceToRequestFromTransport(foos);
+            expectResourceToRequestFromTransport(bars);
+            expectResourceToRequestFromTransport(foosBars);
+          });
+        }
+
+        describe('default', function() {
+
+          beforeEach(function() {
+            createRestApi('default-transport');
+          });
+
+          it('should have api transport', function() {
+            expect(restApi._transportElement).to.be.ok;
+          });
+
+          it('should inherit api transport', function() {
+            expect(foos._transportElement).to.be.equal(restApi._transportElement);
+            expect(bars._transportElement).to.be.equal(restApi._transportElement);
+            expect(foosBars._transportElement).to.be.equal(restApi._transportElement);
+          });
+
+          testTransportsInvoked();
+
+        });
+
+        describe('custom', function() {
+
+          var apiTransport, foosTransport;
+
+          beforeEach(function() {
+            createRestApi('custom-transports');
+            apiTransport = Polymer.dom(restApi).children.slice(-1)[0];
+            foosTransport = Polymer.dom(foos).children.slice(-1)[0];
+          });
+
+          it('should accept api transport', function() {
+            expect(restApi._transportElement).to.be.ok;
+            expect(restApi._transportElement).to.equal(apiTransport);
+          });
+
+          it('should inherit api transport', function() {
+            expect(bars._transportElement).to.be.ok;
+            expect(bars._transportElement).to.equal(apiTransport);
+          });
+
+          it('should accept resource transport', function() {
+            expect(foos._transportElement).to.be.ok;
+            expect(foos._transportElement).to.equal(foosTransport);
+          });
+
+          it('should inherit resource transport', function() {
+            expect(foosBars._transportElement).to.be.ok;
+            expect(foosBars._transportElement).to.equal(foosTransport);
+          });
+
+          testTransportsInvoked();
+
+        });
+
+      });
+
+
+    </script>
+
+  </body>
+</html>

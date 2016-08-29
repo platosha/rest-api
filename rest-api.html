@@ -26,8 +26,51 @@ Example:
       <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
     </rest-api>
 
+### AJAX Transport Elements
+
+Transport element is an `<iron-ajax>` or a compatible element that is used by
+the `<rest-api>` element to perform the API requests.
+
+By default, the internal `<iron-ajax>` instance is used by `<rest-api>`.
+
+You can override the default internal transport by placing a custom transport
+element, that has `rest-api-resource` element, to the light DOM contents of
+`<rest-api>`.
+
+The transport placed in the parent `<rest-api>` or `<rest-api-resource>` are
+also used by the nested `<rest-api-resource>` elements.
+
+In the following example, the `<custom-transport>` element is used as a
+transport for the entire API:
+
+    <rest-api url="http://localhost:3000">
+      <custom-transport rest-api-transport></custom-transport>
+      <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
+    </rest-api>
+
+This example uses the default transport to query the “books”, but the custom
+transport is assigned for the “authors” collection.
+
+    <rest-api url="http://localhost:3000">
+      <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
+      <rest-api-resource name="authors" collection="{{authors}}">
+        <custom-transport rest-api-transport></custom-transport>
+      </rest-api-resource>
+    </rest-api>
+
+See the [RestApi.AbstractTransportBehavior](#RestApi.AbstractTransportBehavior)
+API documentation page for the custom transport elements API.
+
 @demo
+@demo demo/json-server.html
 -->
+<dom-module id="rest-api">
+  <template>
+    <iron-ajax id="ajax" content-type="application/json" bubbles></iron-ajax>
+    <content></content>
+  </template>
+</dom-module>
+
 <script>
 
   Polymer({
@@ -105,6 +148,10 @@ Example:
        */
       bubbles: Boolean
 
+    },
+
+    get _transportElement() {
+      return this.queryEffectiveChildren('[rest-api-transport]') || this.$.ajax;
     }
 
   });
