@@ -78,6 +78,11 @@ Example:
       },
 
       /**
+       * The set of request headers used for this resource’s API requests.
+       */
+      headers: Object,
+
+      /**
        * Default set of request parameters used in all API requests.
        *
        * Inherited from the `params` parameter of the parent `rest-api` element.
@@ -206,6 +211,7 @@ Example:
     attached: function() {
       var inheritedProperties = [
         'idAttribute',
+        'headers',
         'offsetParamName',
         'limitParamName',
         'readOnly',
@@ -640,6 +646,7 @@ Example:
         }, this);
       }
 
+      ajax.headers = Object.create(this.headers || {});
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },
