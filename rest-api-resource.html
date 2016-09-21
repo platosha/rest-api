@@ -154,6 +154,12 @@ Example:
       readOnly: Boolean,
 
       /**
+       * Enables single item fetching. Example fetch http://www.domain.com/post/1
+       * when selectedItemId = 1 is specified and add the item to an empty collection.
+       */
+      fetchSingle: Boolean,
+
+      /**
        * Enable bubbling for `error`, `request` and `response` events.
        *
        * Inherited from parent `rest-api` element.
@@ -518,9 +524,22 @@ Example:
           return;
         }
 
+        if (this.fetchSingle && this.selectedItemId) {
+          ajax.url = ajax.url + '/' + this.selectedItemId;
+        }
+
         var request = ajax.generateRequest();
+
         request.completes.then(function(request) {
-          this._replaceCollection(request.response);
+
+          var newCollection = [];
+          if (this.fetchSingle && this.selectedItemId) {
+            newCollection.push(request.response);
+          } else {
+            newCollection = request.response;
+          }
+
+          this._replaceCollection(newCollection);
         }.bind(this));
 
         return request;
