@@ -165,6 +165,15 @@ Example:
       },
 
       /**
+       * The id of the currently selected item of the collection.
+       */
+      selectedItemId: {
+        type: String,
+        notify: true,
+        observer: '_changedSelectedId'
+      },
+
+      /**
        * Used in nested request and represents the currently selected item of
        * the parent.
        */
@@ -257,6 +266,10 @@ Example:
       }
 
       return url + '/' + name;
+    },
+
+    _changedSelectedId: function(selectedItemId) {
+      this.selectedItem = this._collectionById[selectedItemId];
     },
 
     _forEachAddedAndRemovedItem: function(changes, addedItemCallback, removedItemCallback) {
@@ -433,6 +446,8 @@ Example:
 
     _replaceCollection: function(items) {
       this._spliceCollection(0, this.collection.length, items);
+
+      if(this.selectedItemId) this._changedSelectedId(this.selectedItemId);
     },
 
     _getItemId: function(item) {
