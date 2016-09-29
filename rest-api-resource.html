@@ -281,7 +281,11 @@ Example:
     },
 
     _changedSelectedId: function(selectedItemId) {
-      this.selectedItem = this._collectionById[selectedItemId];
+      if(selectedItemId in this._collectionById) {
+        this.selectedItem = this._collectionById[selectedItemId];
+      } else if(this.fetchSingle) {
+        this.collection.fetch();
+      }
     },
 
     _forEachAddedAndRemovedItem: function(changes, addedItemCallback, removedItemCallback) {
