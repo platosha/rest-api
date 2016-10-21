@@ -35,8 +35,14 @@ limitations under the License.
             padding: 20px 0 0;
             text-align: center;
             }
+          :host([loading]) img {
+            visibility: hidden;
+            }
+          img {
+            visibility: visible;
+            }
         </style>
-        <img src="[[photo.thumbnailUrl]]" width="150" height="150">
+        <img src="[[photo.thumbnailUrl]]" width="150" height="150" on-load="_finishLoading">
         <div>[[photo.title]]</div>
       </template>
       <script>
@@ -44,7 +50,20 @@ limitations under the License.
           Polymer({
             is: 'gallery-photo',
             properties: {
-              photo: Object
+              photo: {
+                type: Object,
+                observer: '_startLoading'
+              },
+              loading: {
+                type: Boolean,
+                reflectToAttribute: true
+              },
+            },
+            _startLoading: function() {
+              this.loading = true;
+            },
+            _finishLoading: function() {
+              this.loading = false;
             }
           });
         });
