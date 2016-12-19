@@ -16,6 +16,7 @@
       <template is="dom-template">
         <rest-api url="//rest-api.example.com"
             params='{"custom": true}'
+            headers='{"X-Custom": true}'
             idAttribute="customIdAttribute"
             offsetParamName="customOffsetParamName"
             limitParamName="customLimitParamName"
@@ -61,6 +62,12 @@
           expect(foos._rootParams).to.deep.equal({custom: true});
           expect(foos._getAjaxElement().params.custom).to.equal(true);
           expect(foosBars._rootParams).to.deep.equal({custom: true});
+        });
+
+        it('should inherit root headers', function() {
+          expect(foos._getComposedHeaders()).to.have.property('X-Custom', true);
+          expect(foos._getAjaxElement().headers['X-Custom']).to.equal(true);
+          expect(foosBars._getComposedHeaders()).to.have.property('X-Custom', true);
         });
 
       });
