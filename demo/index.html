@@ -85,7 +85,7 @@ limitations under the License.
 
       <div class="flex-2 layout vertical">
         <template is="dom-if" if="[[currentAlbum]]">
-          <iron-list items="[[currentAlbum.photos]]" grid as="photo">
+          <iron-list items="[[currentAlbum.photos]]" grid as="photo" class="flex-2">
             <template>
               <gallery-photo photo="[[photo]]"></gallery-photo>
             </template>

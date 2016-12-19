@@ -19,23 +19,10 @@ limitations under the License.
 
 <!--
 An element specifying REST API resource inside <rest-api>.
-
-Example:
-
-    <rest-api url="http://localhost:3000">
-      <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
-    </rest-api>
-
 @demo
 -->
 <dom-module id="rest-api-resource">
   <template>
-    <iron-ajax id="ajax"
-              content-type="application/json"
-              on-error="_transmitAjaxEvent"
-              on-request="_transmitAjaxEvent"
-              on-response="_transmitAjaxEvent">
-    </iron-ajax>
     <content></content>
   </template>
 </dom-module>
@@ -558,12 +545,10 @@ Example:
           return this.collection.fetchItem(this.selectedItemId);
         }
 
-        var ajax = this._getAjaxElement();
-        if (!ajax) {
+        var request = this._request();
+        if (!request) {
           return;
         }
-
-        var request = ajax.generateRequest();
 
         request.completes.then(function(request) {
           this._replaceCollection(request.response);
@@ -579,12 +564,10 @@ Example:
           return;
         }
 
-        var ajax = this._getAjaxElement(this._getUrlForItemId(id));
-        if (!ajax) {
+        var request = this._request('GET', this._getUrlForItemId(id));
+        if (!request) {
           return;
         }
-
-        var request = ajax.generateRequest();
 
         request.completes.then(function(request) {
           this._replaceCollection([request.response]);
@@ -596,37 +579,9 @@ Example:
         return request;
       },
 
-      /* TODO: add a callback method like for <vaadin-grid> items property
-
+      /* TODO: add a callback method like the following for <vaadin-grid> items property
       lazyFetch: function(req) {
-
-        var ajax = this._getAjaxElement();
-        if (!ajax) {
-          return;
-        }
-
-        ajax.params[this.offsetParamName] = req.index;
-        ajax.params[this.limitParamName] = req.count;
-
-        ajax.addEventListener('response', (function(e) {
-
-          this._spliceCollection(
-              req.index,
-              e.detail.response.length,
-              e.detail.response
-          );
-
-          req.success(
-              e.detail.response,
-              parseInt(e.detail.xhr.getResponseHeader('X-Total-Count'))
-          );
-
-        }).bind(this));
-
-        return ajax.generateRequest();
-
       },
-
       */
 
       saveItem: function(id, attrs, options) {
@@ -635,27 +590,20 @@ Example:
           return;
         }
 
+        var method = options.method;
+        var url = null;
+
         if (id) {
-
-          var ajax = this._getAjaxElement(this._getUrlForItemId(id), attrs, !this.allowNonGetParams);
-          if (!ajax) {
-            return;
-          }
-
-          ajax.method = options.method || 'PATCH';
-
+          method = method || 'PATCH';
+          url = this._getUrlForItemId(id);
         } else {
-
-          var ajax = this._getAjaxElement(null, attrs, !this.allowNonGetParams);
-          if (!ajax) {
-            return;
-          }
-
-          ajax.method = options.method || 'POST';
-
+          method = method || 'POST';
         }
 
-        var request = ajax.generateRequest();
+        var request = this._request(method, url, attrs);
+        if (!request) {
+          return;
+        }
 
         request.completes.then(function(request) {
           if (options.callback) {
@@ -682,14 +630,13 @@ Example:
           return;
         }
 
-        var ajax = this._getAjaxElement(this._getUrlForItemId(id), {}, !this.allowNonGetParams);
-        if (!ajax) {
+        var method = options.method || 'DELETE';
+
+        var request = this._request(method, this._getUrlForItemId(id));
+        if (!request) {
           return;
         }
 
-        ajax.method = options.method || 'DELETE';
-
-        var request = ajax.generateRequest();
         request.completes.then(function(request) {
           if (options.callback) {
             options.callback(request.response);
@@ -726,25 +673,40 @@ Example:
       return headers;
     },
 
-    _getAjaxElement: function(url, data, noparams) {
-      var ajax = this.$.ajax;
-      ajax.url = url || this.url;
-      if (!ajax.url) {
+    get _transportElement() {
+      return this.queryEffectiveChildren('[rest-api-transport]') || this.parentElement._transportElement;
+    },
+
+    _request: function(method, url, data, supplementalParams) {
+      var transport = this._transportElement;
+
+      if (!method) {
+        method = 'GET';
+      }
+      transport.method = method;
+
+      transport.url = url || this.url;
+      if (!transport.url) {
         return;
       }
 
-      if(noparams) {
-        ajax.params = {};
+      if (transport.method !== 'GET' && !this.allowNonGetParams) {
+        transport.params = {};
       } else {
-        ajax.params = Object.create(this._rootParams || {});
+        transport.params = Object.create(this._rootParams || {});
         Object.getOwnPropertyNames(this.params).forEach(function(prop) {
-          ajax.params[prop] = this.params[prop];
+          transport.params[prop] = this.params[prop];
         }, this);
+        if (supplementalParams) {
+          Object.getOwnPropertyNames(supplementalParams).forEach(function(prop) {
+            transport.params[prop] = supplementalParams[prop];
+          });
+        }
       }
 
-      ajax.headers = this._getComposedHeaders();
-      ajax.body = data ? JSON.stringify(data) : '';
-      return ajax;
+      transport.headers = this._getComposedHeaders();
+      transport.body = data ? JSON.stringify(data) : '';
+      return transport.generateRequest();
     },
 
     _autoFetch: function() {
@@ -805,10 +767,6 @@ Example:
         change[child.name] = child.collection;
         this._updateItem(child._parentItem, change);
       }
-    },
-
-    _transmitAjaxEvent: function(event) {
-      this.fire(event.type, event.detail, {bubbles: this.bubbles});
     },
 
     _selectedItemChanged: function(selectedItem) {
