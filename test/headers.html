@@ -1,0 +1,163 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../../test-fixture/test-fixture.html">
+    <link rel="import" href="../rest-api.html">
+  </head>
+  <body>
+
+    <test-fixture id="rest-api">
+      <template is="dom-template">
+        <rest-api url="{{apiUrl}}" headers='{"x-api": "api"}'>
+          <rest-api-resource name="foos" headers='{"x-foo": "foo"}'>
+            <rest-api-resource name="bars" headers='{"x-bar": "bar"}' read-only></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <script>
+
+      var data = {
+        apiUrl: '//rest-api.example.com',
+        foos: [
+          {id: 1},
+          {id: 2},
+          {id: 3}
+        ],
+        bars: [
+          {id: 11, fooId: 1},
+          {id: 12, fooId: 1},
+          {id: 13, fooId: 2}
+        ]
+      };
+
+      function cloneObject(obj) {
+        var clone = {};
+        Object.getOwnPropertyNames(obj).forEach(function(prop) {
+          clone[prop] = obj[prop];
+        });
+        return clone;
+      }
+
+      function getApiUrl(url) {
+        return data.apiUrl + url;
+      }
+
+      var restApi, foos, foosBars, server;
+
+      function createRestApi(done) {
+        var fixtureProperties = {
+          apiUrl: data.apiUrl
+        };
+        restApi = fixture('rest-api', fixtureProperties);
+        foos = Polymer.dom(restApi).children[0];
+        foosBars = Polymer.dom(foos).children[0];
+        if (done) {
+          afterServerResponse(foos, done);
+        }
+      }
+
+      function afterServerResponse(target, callback) {
+        var handler = function(event) {
+          target.removeEventListener('response', handler);
+          target.async(callback, 1);
+        };
+        target.addEventListener('response', handler);
+        server.respond();
+      }
+
+      function serverRespondsWithJson(data) {
+        server.respondWith([200, {"Content-Type": "application/json"}, JSON.stringify(data)]);
+      }
+
+      function lastRequestHeaders() {
+        var request = server.requests[server.requests.length - 1];
+        return request.requestHeaders;
+      }
+
+      beforeEach(function() {
+        server = sinon.fakeServer.create();
+        // Respond data.foos by default
+        serverRespondsWithJson(data.foos);
+      });
+
+      afterEach(function() {
+        server.restore();
+      });
+
+      describe('resource', function() {
+
+       describe('CRUD urls and headers', function() {
+
+          beforeEach(createRestApi);
+
+          it('should support headers', function() {
+            foos.set('headers', {'x-foo': 'custom'});
+            expect(foos._getComposedHeaders()).to.have.property('x-api', 'api');
+            expect(foos._getComposedHeaders()).to.have.property('x-foo', 'custom');
+          });
+
+          it('should send headers on auto-fetch', function() {
+            expect(server.requests.length).to.equal(1);
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+          });
+
+          it('should send headers on nested collection auto-fetch', function() {
+            foos.set('selectedItem', foos.collection[0]);
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+            expect(lastRequestHeaders()).to.have.property('x-bar', 'bar');
+          });
+
+          it('should not auto-fetch collection on headers change', function() {
+            foos.set('headers', {'x-foo': 'custom'});
+            expect(server.requests.length).to.equal(1);
+          });
+
+          it('should send headers on create', function() {
+            var newObj = {newKey: 'foo'};
+            foos.push('collection', newObj);
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+            expect(server.requests.length).to.equal(2);
+          });
+
+          it('should send headers on key update', function() {
+            var newKey = 'foo';
+            foos.set('collection.0.newKey', newKey)
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+            expect(server.requests.length).to.equal(2);
+          });
+
+          it('should send headers on replace', function() {
+            var newItem = cloneObject(data.foos[0]);
+            newItem.newKey = 'foo';
+            foos.set('collection.0', newItem);
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+            expect(server.requests.length).to.equal(2);
+          });
+
+          it('should send headers on destroy', function() {
+            foos.pop('collection');
+            expect(lastRequestHeaders()).to.have.property('x-api', 'api');
+            expect(lastRequestHeaders()).to.have.property('x-foo', 'foo');
+            expect(server.requests.length).to.equal(2);
+          });
+
+        });
+
+      });
+
+    </script>
+
+  </body>
+</html>

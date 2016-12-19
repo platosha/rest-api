@@ -93,6 +93,10 @@
         serverRespondsWithJson(data.foos);
       });
 
+      afterEach(function() {
+        server.restore();
+      });
+
       describe('resource', function() {
 
        describe('CRUD urls and allowNonGetParams', function() {
@@ -161,6 +165,7 @@
           });
 
         });
+
       });
 
     </script>

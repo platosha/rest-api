@@ -78,16 +78,21 @@ Example:
       },
 
       /**
-       * The set of request headers used for this resource’s API requests.
-       */
-      headers: Object,
-
-      /**
        * Default set of request parameters used in all API requests.
        *
        * Inherited from the `params` parameter of the parent `rest-api` element.
        */
       _rootParams: Object,
+
+      /**
+       * The set of request headers used for this resource and its nested resources.
+       */
+      headers: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
 
       /**
        * Allow the use of query parameters on other requests than GET requests.
@@ -227,7 +232,6 @@ Example:
     attached: function() {
       var inheritedProperties = [
         'idAttribute',
-        'headers',
         'offsetParamName',
         'limitParamName',
         'readOnly',
@@ -241,12 +245,13 @@ Example:
         }
       }
 
-      this.parentUrl = this.parentElement.url;
       this._rootParams = this._isNested() ? this.parentElement._rootParams : this.parentElement.params;
 
       if (this._isNested()) {
         this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
       }
+
+      this.parentUrl = this.parentElement.url; // triggers _autoFetch, please keep it last here
     },
 
     detached: function() {
@@ -713,6 +718,14 @@ Example:
       return collection;
     },
 
+    _getComposedHeaders: function() {
+      var headers = this._isNested() ? this.parentElement._getComposedHeaders() : (this.parentElement.headers || {});
+      Object.getOwnPropertyNames(this.headers).forEach(function(prop) {
+        headers[prop] = this.headers[prop];
+      }, this)
+      return headers;
+    },
+
     _getAjaxElement: function(url, data, noparams) {
       var ajax = this.$.ajax;
       ajax.url = url || this.url;
@@ -729,7 +742,7 @@ Example:
         }, this);
       }
 
-      ajax.headers = Object.create(this.headers || {});
+      ajax.headers = this._getComposedHeaders();
       ajax.body = data ? JSON.stringify(data) : '';
       return ajax;
     },
