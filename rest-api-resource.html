@@ -255,6 +255,7 @@ Example:
 
     observers: [
       '_collectionChanged(collection.*)',
+      '_selectedItemChanged(selectedItem.*)',
       '_autoFetch(url, collection, params.*)'
     ],
 
@@ -302,6 +303,12 @@ Example:
 
       changes.indexSplices.forEach(processer);
 
+    },
+
+    _selectedItemChanged: function(changeRecord) {
+      var key = this._polymerCollection.getKey(changeRecord.base);
+      var attribKey = changeRecord.path.split('.').slice(1);
+      this.set(['collection', key, attribKey], changeRecord.base[attribKey]);
     },
 
     _collectionChanged: function(changeRecord) {
