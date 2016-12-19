@@ -59,7 +59,9 @@ limitations under the License.
       <app-route route="{{route}}" pattern="/post/:postId" data="{{routeData}}"></app-route>
 
       <rest-api url="//jsonplaceholder.typicode.com">
-        <rest-api-resource name="comments" collection="{{comments}}" params="[[routeData]]"></rest-api-resource>
+        <rest-api-resource name="posts" collection="{{posts}}" fetch-single selected-item-id="[[routeData.postId]]">
+          <rest-api-resource name="comments" collection="{{comments}}"></rest-api-resource>
+        </rest-api-resource>
       </rest-api>
 
       <a href="#/post/1">Post 1</a>

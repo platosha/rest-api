@@ -18,9 +18,18 @@
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
-          <rest-api-resource name="bars" no-auto-fetch>
-            <rest-api-resource name="quxes" read-only no-auto-fetch></rest-api-resource>
+          <rest-api-resource name="bars" no-auto-fetch></rest-api-resource>
+        </rest-api>
+      </template>
+    </test-fixture>
+
+    <test-fixture id="rest-api-single">
+      <template is="dom-template">
+        <rest-api url="{{apiUrl}}">
+          <rest-api-resource name="foos" selected-item-id="2" fetch-single>
+            <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
+          <rest-api-resource name="bars" selected-item-id="12" fetch-single no-auto-fetch></rest-api-resource>
         </rest-api>
       </template>
     </test-fixture>
@@ -35,6 +44,9 @@
           {id: 3}
         ],
         bars: [
+          {id: 1},
+          {id: 2},
+          {id: 3},
           {id: 11, fooId: 1},
           {id: 12, fooId: 1},
           {id: 13, fooId: 2}
@@ -127,7 +139,7 @@
             expect(server.requests.length).to.equal(1);
 
             afterServerResponse(foos, function() {
-              expect(foos.collection).to.deep.include.members(data.foos);
+              expect(foos.collection).to.deep.have.members(data.foos);
               done();
             });
 
@@ -307,6 +319,150 @@
 
 
         });
+
+
+        describe('single item fetch mode', function() {
+
+
+          function createRestApiSingle(done) {
+            restApi = fixture('rest-api-single', {apiUrl: data.apiUrl});
+            foos = Polymer.dom(restApi).children[0];
+            bars = Polymer.dom(restApi).children[1];
+            foosBars = Polymer.dom(foos).children[0];
+            serverRespondsWithJson(data.foos[1]);
+            if (done) {
+              afterServerResponse(foos, done);
+            }
+          }
+
+
+          describe('initial auto-fetch', function() {
+
+
+            it('should auto-fetch selected item after attached', function(done) {
+
+              createRestApiSingle();
+
+              expectRequest('GET', '/foos/2');
+              expect(server.requests.length).to.equal(1);
+
+              afterServerResponse(foos, function() {
+                expect(foos.collection.length).to.equal(1);
+                expect(foos.collection[0]).to.contain(data.foos[1]);
+                expect(foos.selectedItem).to.contain(data.foos[1]);
+                done();
+              });
+
+            });
+
+
+          });
+
+
+          describe('auto-fetch', function() {
+
+
+            beforeEach(createRestApiSingle);
+
+
+            it('should auto-fetch the selected item on name change', function(done) {
+
+              serverRespondsWithJson(data.bars[1]);
+
+              foos.name = 'bars';
+
+              expectRequest('GET', '/bars/2');
+              expect(server.requests.length).to.equal(3);
+
+              afterServerResponse(foos, function() {
+                expect(foos.collection.length).to.equal(1);
+                expect(foos.collection[0]).to.contain(data.bars[1]);
+                expect(foos.selectedItem).to.contain(data.bars[1]);
+                done();
+              });
+
+            });
+
+
+            it('should auto-fetch the selected item on id change', function(done) {
+
+              serverRespondsWithJson(data.foos[0]);
+
+              foos.selectedItemId = data.foos[0].id;
+
+              expectRequest('GET', '/foos/1');
+              expect(server.requests.length).to.equal(3);
+
+              afterServerResponse(foos, function() {
+                expect(foos.collection.length).to.equal(1);
+                expect(foos.collection[0]).to.contain(data.foos[0]);
+                expect(foos.selectedItem).to.contain(data.foos[0]);
+                done();
+              });
+
+            });
+
+
+            it('should auto-fetch the selected item on params change', function() {
+
+              serverRespondsWithJson(data.bars);
+
+              foos.set('params', {baz: 1});
+              expectRequest('GET', '/foos/2?baz=1');
+
+              foos.set('params.baz', 2);
+              expectRequest('GET', '/foos/2?baz=2');
+              expect(server.requests.length).to.equal(4);
+
+            });
+
+
+          });
+
+
+          describe('fetch', function() {
+
+
+            beforeEach(createRestApiSingle);
+
+
+            it('should replace collection after fetch of another item', function(done) {
+
+              var newObj = {id: 1, newKey: 'foo'};
+              serverRespondsWithJson(newObj);
+
+              foos.selectedItemId = data.foos[0].id;
+
+              afterServerResponse(foos, function() {
+                expect(foos.collection[0]).to.contain(newObj);
+                expect(foos.selectedItem).to.contain(newObj);
+                done();
+              });
+
+            });
+
+
+            it('should replace existing item after fetch', function(done) {
+
+              var newObj = {id: 2, newKey: 'foo'};
+              serverRespondsWithJson(newObj);
+
+              foos.collection.fetchItem(2);
+
+              afterServerResponse(foos, function() {
+                expect(foos.collection[0]).to.contain(newObj);
+                expect(foos.selectedItem).to.contain(newObj);
+                done();
+              });
+
+            });
+
+
+          });
+
+
+        });
+
 
       });
 

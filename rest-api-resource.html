@@ -154,8 +154,8 @@ Example:
       readOnly: Boolean,
 
       /**
-       * Enables single item fetching. Example fetch http://www.domain.com/post/1
-       * when selectedItemId = 1 is specified and add the item to an empty collection.
+       * Enables single item fetching. For example, when selectedItemId = 1 is specified,
+       * it fetches the item from /collectionName/1 and adds the item to an empty collection.
        */
       fetchSingle: Boolean,
 
@@ -181,7 +181,7 @@ Example:
       selectedItemId: {
         type: String,
         notify: true,
-        observer: '_changedSelectedId'
+        observer: '_selectedItemIdChanged'
       },
 
       /**
@@ -255,7 +255,8 @@ Example:
 
     observers: [
       '_collectionChanged(collection.*)',
-      '_autoFetch(url, collection, params.*)'
+      '_autoFetch(url, collection, params.*)',
+      '_autoFetch(fetchSingle)'
     ],
 
     _isNested: function() {
@@ -280,11 +281,15 @@ Example:
       return url + '/' + name;
     },
 
-    _changedSelectedId: function(selectedItemId) {
+    _selectedItemIdChanged: function(selectedItemId) {
+      this._selectItemById(selectedItemId);
+    },
+
+    _selectItemById: function(selectedItemId, skipAutoFetch) {
       if(selectedItemId in this._collectionById) {
         this.selectedItem = this._collectionById[selectedItemId];
-      } else if(this.fetchSingle) {
-        this.collection.fetch();
+      } else if (this.fetchSingle && !skipAutoFetch) {
+        this.collection.fetchItem(selectedItemId);
       }
     },
 
@@ -462,8 +467,6 @@ Example:
 
     _replaceCollection: function(items) {
       this._spliceCollection(0, this.collection.length, items);
-
-      if(this.selectedItemId) this._changedSelectedId(this.selectedItemId);
     },
 
     _getItemId: function(item) {
@@ -479,7 +482,9 @@ Example:
     },
 
     _getUrlForItemId: function(itemId) {
-      return itemId ? this.url + '/' + itemId : '';
+      if (this.url && itemId) {
+        return this.url + '/' + itemId;
+      }
     },
 
     _updateItem: function(item, attrs) {
@@ -509,6 +514,26 @@ Example:
 
     },
 
+    _appendItem: function(attrs) {
+
+      this._skipAutoSave = true;
+
+      this.collection.push(attrs);
+
+      this._skipAutoSave = false;
+
+    },
+
+    _appendOrUpdateItemById: function(id, attrs) {
+
+      if (id in this._collectionById) {
+        this._updateItem(id, request.response);
+      } else {
+        this._appendItem(attrs);
+      }
+
+    },
+
     _updateNestedCollection(item, name, path, value) {
 
       this._skipAutoSave = true;
@@ -524,31 +549,46 @@ Example:
 
       fetch: function() {
 
+        if (this.fetchSingle) {
+          return this.collection.fetchItem(this.selectedItemId);
+        }
+
         var ajax = this._getAjaxElement();
         if (!ajax) {
           return;
         }
 
-        if (this.fetchSingle && this.selectedItemId) {
-          ajax.url = ajax.url + '/' + this.selectedItemId;
+        var request = ajax.generateRequest();
+
+        request.completes.then(function(request) {
+          this._replaceCollection(request.response);
+        }.bind(this));
+
+        return request;
+
+      },
+
+      fetchItem: function(id) {
+
+        if (!id) {
+          return;
+        }
+
+        var ajax = this._getAjaxElement(this._getUrlForItemId(id));
+        if (!ajax) {
+          return;
         }
 
         var request = ajax.generateRequest();
 
         request.completes.then(function(request) {
-
-          var newCollection = [];
-          if (this.fetchSingle && this.selectedItemId) {
-            newCollection.push(request.response);
-          } else {
-            newCollection = request.response;
+          this._replaceCollection([request.response]);
+          if (this.selectedItemId) {
+            this._selectItemById(this.selectedItemId, true);
           }
-
-          this._replaceCollection(newCollection);
         }.bind(this));
 
         return request;
-
       },
 
       /* TODO: add a callback method like for <vaadin-grid> items property
@@ -666,6 +706,10 @@ Example:
         collection[prop] = this._collectionMethods[prop].bind(this);
       }, this);
 
+      if (this.selectedItemId) {
+        this._selectItemById(this.selectedItemId, true);
+      }
+
       return collection;
     },
 
@@ -697,9 +741,11 @@ Example:
           delete this._autoFetchRequest;
         }
         this._autoFetchRequest = this.collection.fetch();
-        this._autoFetchRequest.completes.then((function() {
-          delete this._autoFetchRequest;
-        }).bind(this));
+        if (this._autoFetchRequest) {
+          this._autoFetchRequest.completes.then((function() {
+            delete this._autoFetchRequest;
+          }).bind(this));
+        }
       }
     },
 
