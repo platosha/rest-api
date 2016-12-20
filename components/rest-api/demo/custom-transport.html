@@ -1,0 +1,152 @@
+<!doctype html>
+<!--
+@license
+Copyright 2015 Anton Platonov <platosha@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>rest-api Custom Transport Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="common.html">
+    <link rel="import" href="../../iron-ajax/iron-ajax.html">
+    <link rel="import" href="../../paper-styles/classes/shadow.html">
+    <link rel="import" href="../../paper-styles/typography.html">
+    <link rel="import" href="../../paper-styles/default-theme.html">
+    <style is="custom-style">
+      body {
+        margin: 0;
+        background-color: var(--primary-background-color);
+        color: var(--primary-text-color);
+        }
+
+      h2 {
+        padding: .5em 1em;
+        margin: 0;
+        font-size: 1em;
+        background-color: var(--primary-color);
+        color: var(--dark-theme-text-color);
+        }
+
+      h3 {
+        @apply(--paper-font-headline);
+        text-transform: capitalize;
+        }
+
+      .main {
+        background-color: var(--primary-background-color);
+        color: var(--primary-text-color);
+        }
+
+      .post {
+        padding: 2em;
+        border-bottom: 1px solid;
+        border-bottom-color: var(--divider-color)
+        }
+    </style>
+  </head>
+  <body class="fullbleed layout horizontal">
+
+    <dom-module id="custom-transport">
+      <template>
+        <iron-ajax id="ajax"
+            method="[[method]]"
+            url="[[url]]"
+            params="[[params]]"
+            headers="[[headers]]"
+            body="[[body]]"
+            content-type="application/json">
+        </iron-ajax>
+      </template>
+      <script>
+        document.addEventListener('HTMLImportsLoaded', function() {
+          /**
+           * Example custom transport element to use with `<rest-api>`. Logs
+           * the API requests before sending. Also measures and logs the
+           * response time.
+           *
+           * This example uses data binding and `<iron-ajax>` to perform
+           * the API requests.
+           *
+           * @polymerElement
+           */
+          Polymer({
+
+            is: 'custom-transport',
+
+            generateRequest: function() {
+              var method = this.method;
+              var url = this.url;
+
+              var request = this.$.ajax.generateRequest();
+
+              var startTime = new Date();
+              console.log(method, url, 'Started');
+              request.completes.then(function(request) {
+                console.log(method, url, 'Finished in ' + (new Date() - startTime) + 'ms');
+              });
+
+              return request;
+            }
+
+          });
+        });
+      </script>
+    </dom-module>
+
+    <template is="dom-bind" id="app">
+
+      <rest-api url="//jsonplaceholder.typicode.com">
+        <rest-api-resource name="users" collection="{{users}}" selected-item="{{currentUser}}" read-only>
+          <rest-api-resource name="posts" collection="{{posts}}" read-only></rest-api-resource>
+        </rest-api-resource>
+        <custom-transport rest-api-transport></custom-transport>
+      </rest-api>
+
+      <template is="dom-if" if="[[users]]">
+        <div class="layout vertical flex-1">
+          <h2 class="shadow-elevation-4dp">View posts by:</h2>
+          <iron-list items="[[users]]" as="user" selection-enabled selected-item="{{currentUser}}" class="flex">
+            <template>
+              <paper-item>[[user.name]]</paper-item>
+            </template>
+          </iron-list>
+        </div>
+      </template>
+
+      <template is="dom-if" if="[[posts]]">
+        <iron-list items="[[posts]]" as="post" class="main flex-2">
+          <template>
+            <div class="post">
+              <h3>[[post.title]]</h3>
+              <p>[[post.body]]</p>
+            </div>
+          </template>
+        </iron-list>
+      </template>
+
+      <template is="dom-if" if="[[requests]]">
+        <iron-list items="[[requests]]" as="request" class="flex-1">
+          <template>
+            <paper-item class="layout vertical"></paper-item>
+          </template>
+        </iron-list>
+      </template>
+
+    </template>
+
+  </body>
+</html>

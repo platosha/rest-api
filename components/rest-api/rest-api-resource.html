@@ -1,0 +1,783 @@
+<!--
+@license
+Copyright 2015 Anton Platonov <platosha@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<!--
+An element specifying REST API resource inside <rest-api>.
+@demo
+-->
+<dom-module id="rest-api-resource">
+  <template>
+    <content></content>
+  </template>
+</dom-module>
+
+<script>
+
+  Polymer({
+
+    is: 'rest-api-resource',
+
+    properties: {
+
+      /**
+       * REST API resource name.
+       */
+      name: String,
+
+      /**
+       * Url inherited from the parent `rest-api` element used to calculate
+       * the actual url to request data from.
+       */
+      parentUrl: String,
+
+      /**
+       * Computed value representing the URL to nake request to.
+       */
+      url: {
+        type: String,
+        computed: '_computeUrl(parentUrl, _parentItem, name)'
+      },
+
+      /**
+       * The set of request parameters used for this resource’s API requests.
+       */
+      params: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
+
+      /**
+       * Default set of request parameters used in all API requests.
+       *
+       * Inherited from the `params` parameter of the parent `rest-api` element.
+       */
+      _rootParams: Object,
+
+      /**
+       * The set of request headers used for this resource and its nested resources.
+       */
+      headers: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
+
+      /**
+       * Allow the use of query parameters on other requests than GET requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      allowNonGetParams: Boolean,
+
+      /**
+       * The model id attribute name. Used for model get and save API requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      idAttribute: String,
+
+      /**
+       * The collection of data representing the retrieved data, this data will
+       * be synced with the server when updated.
+       */
+      collection: {
+        type: Array,
+        notify: true,
+        observer: '_initCollection',
+        value: function() {
+          return [];
+        }
+      },
+
+      /**
+       * An internal map holding the collection keyed by the id value of the
+       * model.
+       */
+      _collectionById: {
+        type: Object,
+        value: function() {
+          return {};
+        }
+      },
+
+      /**
+       * Used for specifying API collection offset (the number of items to skip) when performing `lazyFetch` requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      offsetParamName: String,
+
+      /**
+       * Used for specifying API collection limit (the maximum number of requested items) when performing `lazyFetch` requests.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      limitParamName: String,
+
+      /**
+       * This flag turns off the feature that auto fetches data when the request is changed.
+       */
+      noAutoFetch: Boolean,
+
+      /**
+       * Disable send any data changes to the API.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      readOnly: Boolean,
+
+      /**
+       * Enables single item fetching. For example, when selectedItemId = 1 is specified,
+       * it fetches the item from /collectionName/1 and adds the item to an empty collection.
+       */
+      fetchSingle: Boolean,
+
+      /**
+       * Enable bubbling for `error`, `request` and `response` events.
+       *
+       * Inherited from parent `rest-api` element.
+       */
+      bubbles: Boolean,
+
+      /**
+       * The currently selected item of the collection.
+       */
+      selectedItem: {
+        type: Object,
+        notify: true,
+        observer: '_selectedItemChanged'
+      },
+
+      /**
+       * The id of the currently selected item of the collection.
+       */
+      selectedItemId: {
+        type: String,
+        notify: true,
+        observer: '_selectedItemIdChanged'
+      },
+
+      /**
+       * Used in nested request and represents the currently selected item of
+       * the parent.
+       */
+      _parentItem: {
+        type: Object,
+        value: function() {
+          return null;
+        }
+      }
+
+    },
+
+    /**
+     * Fired when a request is sent.
+     *
+     * @event request
+     */
+
+    /**
+     * Fired when a response is received.
+     *
+     * @event response
+     */
+
+    /**
+     * Fired when an error is received.
+     *
+     * @event error
+     */
+
+    created: function() {
+      this._observer = Polymer.dom(this).observeNodes(this._effectiveChildrenChanged);
+      this._skipAutoSave = true;
+    },
+
+    ready: function() {
+      this._skipAutoSave = false;
+    },
+
+    attached: function() {
+      var inheritedProperties = [
+        'idAttribute',
+        'offsetParamName',
+        'limitParamName',
+        'readOnly',
+        'bubbles',
+        'allowNonGetParams'
+      ];
+
+      for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
+        if (this[prop] === undefined) {
+          this[prop] = this.parentElement[prop];
+        }
+      }
+
+      this._rootParams = this._isNested() ? this.parentElement._rootParams : this.parentElement.params;
+
+      if (this._isNested()) {
+        this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+      }
+
+      this.parentUrl = this.parentElement.url; // triggers _autoFetch, please keep it last here
+    },
+
+    detached: function() {
+      this.unlisten(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+    },
+
+    observers: [
+      '_collectionChanged(collection.*)',
+      '_autoFetch(url, collection, params.*)',
+      '_autoFetch(fetchSingle)'
+    ],
+
+    _isNested: function() {
+      return this.parentElement.is === 'rest-api-resource';
+    },
+
+    _getParentItemId: function(parentItem) {
+      return this.parentElement._getItemId(parentItem);
+    },
+
+    _computeUrl: function(parentUrl, parentItem, name) {
+      var url = parentUrl.replace(/\/$/, '');
+
+      if (this._isNested()) {
+        if (parentItem === null) {
+          return undefined;
+        }
+
+        url += '/' + this._getParentItemId(parentItem);
+      }
+
+      return url + '/' + name;
+    },
+
+    _selectedItemIdChanged: function(selectedItemId) {
+      this._selectItemById(selectedItemId);
+    },
+
+    _selectItemById: function(selectedItemId, skipAutoFetch) {
+      if(selectedItemId in this._collectionById) {
+        this.selectedItem = this._collectionById[selectedItemId];
+      } else if (this.fetchSingle && !skipAutoFetch) {
+        this.collection.fetchItem(selectedItemId);
+      }
+    },
+
+    _forEachAddedAndRemovedItem: function(changes, addedItemCallback, removedItemCallback) {
+
+      var processer = (function(splice) {
+
+        splice.removed.forEach(removedItemCallback);
+
+        for (var i = splice.index; i < splice.index + splice.addedCount; i++) {
+          addedItemCallback(splice.object[i], i);
+        }
+
+      }).bind(this);
+
+      changes.indexSplices.forEach(processer);
+
+    },
+
+    _collectionChanged: function(changeRecord) {
+
+      var keys = changeRecord.path.split('.').slice(1);
+
+      // Update this._collectionById hash index
+
+      switch (keys[0]) {
+
+        case 'length':
+          break;
+
+        case 'splices':
+
+          this._forEachAddedAndRemovedItem(
+              changeRecord.value,
+              (function(addedItem) {
+                var id = this._getItemId(addedItem);
+                if (id) {
+                  this._collectionById[id] = addedItem;
+                }
+              }).bind(this),
+              (function(removedItem) {
+                var id = this._getItemId(removedItem);
+                if (id) {
+                  delete this._collectionById[id];
+                }
+              }).bind(this)
+          );
+
+          break;
+
+        default:
+
+          if (keys.length === 0) {
+            break;
+          }
+
+          var item = this._polymerCollection.getItem(keys[0]);
+
+          if (keys.length === 1 || keys[1] === this.idAttribute) {
+            var oldId = this._getItemId(item);
+            var newId = keys.length === 1 ?
+                        this._getItemId(changeRecord.value) :
+                        changeRecord.value;
+            if (oldId) {
+              delete this._collectionById[oldId];
+            }
+            this._collectionById[newId] = item;
+          }
+
+      }
+
+      // Auto save changes to remote API if needed
+
+      if (this._skipAutoSave || this.readOnly) {
+        return true;
+      }
+
+      switch (keys[0]) {
+
+        case 'length':
+          break;
+
+        case 'splices':
+
+          var addedBackById = {};
+
+          this._forEachAddedAndRemovedItem(
+
+              changeRecord.value,
+
+              (function(addedItem) {
+                // TODO: Add item indexes to item data and send them to the API
+                var itemId = this._getItemId(addedItem);
+                if (itemId) {
+                  // Memoize that the item is to be added.
+                  addedBackById[itemId] = addedItem;
+                  // The item has id. Assuming it's already created. Skip.
+                  return;
+                }
+
+                // Create item
+                this.collection.saveItem(null, addedItem, {
+                  callback: this._updateItem.bind(this, addedItem),
+                  method: 'POST'
+                });
+              }).bind(this),
+
+              (function(removedItem) {
+                var itemId = this._getItemId(removedItem);
+                if (itemId) {
+                  if (addedBackById[itemId]) {
+                    // The item is to be removed and added back. Update.
+                    this.collection.saveItem(itemId, removedItem, {
+                      callback: this._updateItem.bind(this, addedItem)
+                    });
+                  } else {
+                    // Destroy item
+                    this.collection.destroyItem(itemId);
+                  }
+                }
+              }).bind(this)
+
+          );
+
+          break;
+
+        case undefined:
+          break;
+
+        default:
+
+          var item = this._polymerCollection.getItem(keys[0]);
+          var itemId = this._getItemId(item);
+          var options = {
+            callback: this._updateItem.bind(this)
+          };
+
+          switch (keys.length) {
+
+            case 1:
+
+              // Save the entire item
+              options.method = 'PUT';
+              this.collection.saveItem(itemId, changeRecord.value, options);
+              break;
+
+            case 2:
+
+              if (typeof changeRecord.value === 'object') {
+                // TODO: Handle non-primitive values somehow
+                break;
+              }
+
+              // Save one attribute
+              var attrs = {};
+              attrs[keys[1]] = changeRecord.value;
+              this.collection.saveItem(itemId, attrs, options);
+              break;
+
+          }
+
+      }
+
+    },
+
+    get _polymerCollection() {
+      return Polymer.Collection.get(this.collection);
+    },
+
+    _spliceCollection: function(index, count, items) {
+      this._skipAutoSave = true;
+      this.splice.apply(this, ['collection', index, count].concat(items));
+      this._skipAutoSave = false;
+    },
+
+    _replaceCollection: function(items) {
+      this._spliceCollection(0, this.collection.length, items);
+    },
+
+    _getItemId: function(item) {
+      return item && item[this.idAttribute];
+    },
+
+    _getItem: function(idOrAttrs) {
+      if (idOrAttrs === undefined || idOrAttrs === null) return undefined;
+      var id = this._getItemId(idOrAttrs);
+      return id !== null ?
+          this._collectionById[id] :
+          this._collectionById[idOrAttrs];
+    },
+
+    _getUrlForItemId: function(itemId) {
+      if (this.url && itemId) {
+        return this.url + '/' + itemId;
+      }
+    },
+
+    _updateItem: function(item, attrs) {
+
+      this._skipAutoSave = true;
+
+      if (!attrs) {
+        attrs = item;
+        item = undefined;
+      }
+
+      item = item || this._getItem(attrs);
+      if (item === undefined || item === null) {
+        this._skipAutoSave = false;
+        return;
+      }
+
+      var key = this._polymerCollection.getKey(item);
+
+      Object.getOwnPropertyNames(attrs).forEach((function(attr) {
+        if (attrs[attr] !== item[attr]) {
+          this.set(['collection', key, attr], attrs[attr]);
+        }
+      }).bind(this));
+
+      this._skipAutoSave = false;
+
+    },
+
+    _appendItem: function(attrs) {
+
+      this._skipAutoSave = true;
+
+      this.collection.push(attrs);
+
+      this._skipAutoSave = false;
+
+    },
+
+    _appendOrUpdateItemById: function(id, attrs) {
+
+      if (id in this._collectionById) {
+        this._updateItem(id, request.response);
+      } else {
+        this._appendItem(attrs);
+      }
+
+    },
+
+    _updateNestedCollection(item, name, path, value) {
+
+      this._skipAutoSave = true;
+
+      var key = this._polymerCollection.getKey(item);
+      this.notifyPath(['collection', key, name, path], value);
+
+      this._skipAutoSave = false;
+
+    },
+
+    _collectionMethods: {
+
+      fetch: function() {
+
+        if (this.fetchSingle) {
+          return this.collection.fetchItem(this.selectedItemId);
+        }
+
+        var request = this._request();
+        if (!request) {
+          return;
+        }
+
+        request.completes.then(function(request) {
+          this._replaceCollection(request.response);
+        }.bind(this));
+
+        return request;
+
+      },
+
+      fetchItem: function(id) {
+
+        if (!id) {
+          return;
+        }
+
+        var request = this._request('GET', this._getUrlForItemId(id));
+        if (!request) {
+          return;
+        }
+
+        request.completes.then(function(request) {
+          this._replaceCollection([request.response]);
+          if (this.selectedItemId) {
+            this._selectItemById(this.selectedItemId, true);
+          }
+        }.bind(this));
+
+        return request;
+      },
+
+      /* TODO: add a callback method like the following for <vaadin-grid> items property
+      lazyFetch: function(req) {
+      },
+      */
+
+      saveItem: function(id, attrs, options) {
+
+        if (this.readOnly) {
+          return;
+        }
+
+        var method = options.method;
+        var url = null;
+
+        if (id) {
+          method = method || 'PATCH';
+          url = this._getUrlForItemId(id);
+        } else {
+          method = method || 'POST';
+        }
+
+        var request = this._request(method, url, attrs);
+        if (!request) {
+          return;
+        }
+
+        request.completes.then(function(request) {
+          if (options.callback) {
+            options.callback(request.response);
+          }
+        });
+
+        return request;
+
+      },
+
+      destroyItem: function(id, options) {
+
+        if (this.readOnly) {
+          return;
+        }
+
+        options = options || {};
+
+        if (!id) {
+          if (options.callback) {
+            this.async(options.callback);
+          }
+          return;
+        }
+
+        var method = options.method || 'DELETE';
+
+        var request = this._request(method, this._getUrlForItemId(id));
+        if (!request) {
+          return;
+        }
+
+        request.completes.then(function(request) {
+          if (options.callback) {
+            options.callback(request.response);
+          }
+        });
+
+        return request;
+
+      }
+
+    },
+
+    _initCollection: function(collection) {
+      if (!collection) {
+        return;
+      }
+
+      Object.getOwnPropertyNames(this._collectionMethods).forEach(function(prop) {
+        collection[prop] = this._collectionMethods[prop].bind(this);
+      }, this);
+
+      if (this.selectedItemId) {
+        this._selectItemById(this.selectedItemId, true);
+      }
+
+      return collection;
+    },
+
+    _getComposedHeaders: function() {
+      var headers = this._isNested() ? this.parentElement._getComposedHeaders() : (this.parentElement.headers || {});
+      Object.getOwnPropertyNames(this.headers).forEach(function(prop) {
+        headers[prop] = this.headers[prop];
+      }, this)
+      return headers;
+    },
+
+    get _transportElement() {
+      return this.queryEffectiveChildren('[rest-api-transport]') || this.parentElement._transportElement;
+    },
+
+    _request: function(method, url, data, supplementalParams) {
+      var transport = this._transportElement;
+
+      if (!method) {
+        method = 'GET';
+      }
+      transport.method = method;
+
+      transport.url = url || this.url;
+      if (!transport.url) {
+        return;
+      }
+
+      if (transport.method !== 'GET' && !this.allowNonGetParams) {
+        transport.params = {};
+      } else {
+        transport.params = Object.create(this._rootParams || {});
+        Object.getOwnPropertyNames(this.params).forEach(function(prop) {
+          transport.params[prop] = this.params[prop];
+        }, this);
+        if (supplementalParams) {
+          Object.getOwnPropertyNames(supplementalParams).forEach(function(prop) {
+            transport.params[prop] = supplementalParams[prop];
+          });
+        }
+      }
+
+      transport.headers = this._getComposedHeaders();
+      transport.body = data ? JSON.stringify(data) : '';
+      return transport.generateRequest();
+    },
+
+    _autoFetch: function() {
+      if (!this.noAutoFetch && !this._skipAutoFetch) {
+        if (this._autoFetchRequest) {
+          this._autoFetchRequest.abort();
+          delete this._autoFetchRequest;
+        }
+        this._autoFetchRequest = this.collection.fetch();
+        if (this._autoFetchRequest) {
+          this._autoFetchRequest.completes.then((function() {
+            delete this._autoFetchRequest;
+          }).bind(this));
+        }
+      }
+    },
+
+    _parentSelectedItemChanged: function(event) {
+      // Only handle the simple replace
+      if (event.detail.path) {
+        return;
+      }
+      this._skipAutoFetch = true;
+      this._parentItem = event.detail.value;
+      this._skipAutoFetch = false;
+      if (this._parentItem) {
+        var newCollection = [];
+        // We only do usual set for the parent item here, as the change
+        // notification will be done by the _nestedCollectionChanged observer.
+        this._parentItem[this.name] = newCollection;
+        this.set('collection', newCollection);
+      }
+    },
+
+    _effectiveChildrenChanged: function(changeset) {
+      var i;
+      for (i = 0; i < changeset.addedNodes.length; i++) {
+        var addedChild = changeset.addedNodes[i];
+        if (addedChild.is === 'rest-api-resource') {
+          this.listen(addedChild, 'collection-changed', '_nestedCollectionChanged');
+        }
+      }
+      for (i = 0; i < changeset.removedNodes.length; i++) {
+        var removedChild = changeset.removedNodes[i];
+        if (removedChild.is === 'rest-api-resource') {
+          this.unlisten(addedChild, 'collection-changed', '_nestedCollectionChanged');
+        }
+      }
+    },
+
+    _nestedCollectionChanged: function(event) {
+      var child = event.target;
+      if (event.detail.path) {
+        var path = event.detail.path.split('.').slice(1).join('.');
+        this._updateNestedCollection(child._parentItem, child.name, path, event.detail.value);
+      } else {
+        var change = {};
+        change[child.name] = child.collection;
+        this._updateItem(child._parentItem, change);
+      }
+    },
+
+    _selectedItemChanged: function(selectedItem) {
+      var key = this._polymerCollection.getKey(selectedItem);
+      if (key) {
+        this.linkPaths('selectedItem', 'collection.' + key);
+      } else {
+        this.unlinkPaths('selectedItem');
+      }
+    }
+
+  });
+
+</script>

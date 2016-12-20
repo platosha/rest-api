@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+@license
+Copyright 2015 Anton Platonov <platosha@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>rest-api with Albums from JSON Placeholder Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="common.html">
+  </head>
+  <body class="fullbleed layout horizontal">
+
+    <dom-module id="gallery-photo">
+      <template>
+        <style>
+          :host {
+            display: block;
+            width: 200px;
+            height: 300px;
+            padding: 20px 0 0;
+            text-align: center;
+            }
+          :host([loading]) img {
+            visibility: hidden;
+            }
+          img {
+            visibility: visible;
+            }
+        </style>
+        <img src="[[photo.thumbnailUrl]]" width="150" height="150" on-load="_finishLoading">
+        <div>[[photo.title]]</div>
+      </template>
+      <script>
+        document.addEventListener('HTMLImportsLoaded', function() {
+          Polymer({
+            is: 'gallery-photo',
+            properties: {
+              photo: {
+                type: Object,
+                observer: '_startLoading'
+              },
+              loading: {
+                type: Boolean,
+                reflectToAttribute: true
+              },
+            },
+            _startLoading: function() {
+              this.loading = true;
+            },
+            _finishLoading: function() {
+              this.loading = false;
+            }
+          });
+        });
+      </script>
+    </dom-module>
+
+    <template is="dom-bind" id="app">
+      <rest-api url="http://jsonplaceholder.typicode.com">
+        <rest-api-resource name="albums" collection="{{albums}}" selected-item="{{currentAlbum}}" read-only>
+          <rest-api-resource name="photos" read-only></rest-api-resource>
+        </rest-api-resource>
+      </rest-api>
+
+      <iron-list items="[[albums]]" selection-enabled selected-item="{{currentAlbum}}" class="flex-1">
+        <template>
+          <paper-item>[[item.title]]</paper-item>
+        </template>
+      </iron-list>
+
+      <div class="flex-2 layout vertical">
+        <template is="dom-if" if="[[currentAlbum]]">
+          <iron-list items="[[currentAlbum.photos]]" grid as="photo" class="flex-2">
+            <template>
+              <gallery-photo photo="[[photo]]"></gallery-photo>
+            </template>
+          </iron-list>
+        </template>
+      </div>
+    </template>
+
+  </body>
+</html>
