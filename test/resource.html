@@ -7,14 +7,14 @@
     <script src="../../web-component-tester/browser.js"></script>
 
     <link rel="import" href="../../test-fixture/test-fixture.html">
-
+    <link rel="import" href="../../polymer/polymer.html">
     <link rel="import" href="../rest-api.html">
   </head>
   <body>
 
-    <test-fixture id="rest-api">
-      <template is="dom-template">
-        <rest-api url="{{apiUrl}}">
+    <test-fixture id="fixture-rest-api">
+      <template>
+        <rest-api>
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
@@ -23,9 +23,9 @@
       </template>
     </test-fixture>
 
-    <test-fixture id="rest-api-single">
-      <template is="dom-template">
-        <rest-api url="{{apiUrl}}">
+    <test-fixture id="fixture-rest-api-single">
+      <template>
+        <rest-api>
           <rest-api-resource name="foos" selected-item-id="2" fetch-single>
             <rest-api-resource name="bars" read-only></rest-api-resource>
           </rest-api-resource>
@@ -41,17 +41,17 @@
       var data = {
         apiUrl: '//rest-api.example.com',
         foos: [
-          {id: 1},
-          {id: 2},
-          {id: 3}
+          {id: 1, is: 'foo'},
+          {id: 2, is: 'foo'},
+          {id: 3, is: 'foo'}
         ],
         bars: [
-          {id: 1},
-          {id: 2},
-          {id: 3},
-          {id: 11, fooId: 1},
-          {id: 12, fooId: 1},
-          {id: 13, fooId: 2}
+          {id: 1, is: 'bar'},
+          {id: 2, is: 'bar'},
+          {id: 3, is: 'bar'},
+          {id: 11, is: 'bar', fooId: 1},
+          {id: 12, is: 'bar', fooId: 1},
+          {id: 13, is: 'bar', fooId: 2}
         ]
       };
 
@@ -68,7 +68,9 @@
       }
 
       function createRestApi(done) {
-        restApi = fixture('rest-api', {apiUrl: data.apiUrl});
+        server.respondWith(getJsonResponse(data.foos));
+        restApi = fixture('fixture-rest-api');
+        restApi.url = data.apiUrl;
         foos = Polymer.dom(restApi).children[0];
         bars = Polymer.dom(restApi).children[1];
         foosBars = Polymer.dom(foos).children[0];
@@ -80,14 +82,14 @@
       function afterServerResponse(callback) {
         var handler = function(event) {
           restApi.removeEventListener('response', handler);
-          restApi.async(callback, 1);
+          setTimeout(callback, 1);
         };
         restApi.addEventListener('response', handler);
         server.respond();
       }
 
-      function serverRespondsWithJson(data) {
-        server.respondWith([200, {"Content-Type": "application/json"}, JSON.stringify(data)]);
+      function getJsonResponse(data) {
+        return [200, {"Content-Type": "application/json"}, JSON.stringify(data)];
       }
 
       function expectRequest(method, url, body) {
@@ -107,8 +109,6 @@
 
       beforeEach(function() {
         server = sinon.fakeServer.create();
-        // Respond data.foos by default
-        serverRespondsWithJson(data.foos);
       });
 
       afterEach(function() {
@@ -126,8 +126,8 @@
 
             createRestApi();
 
-            expectRequest('GET', '/foos');
             expect(server.requests.length).to.equal(1);
+            expectRequest('GET', '/foos');
 
             afterServerResponse(function() {
               expect(foos.collection).to.deep.include.members(data.foos);
@@ -148,7 +148,7 @@
 
           it('should auto-fetch collection on name change', function(done) {
 
-            serverRespondsWithJson(data.bars);
+            server.respondWith(getJsonResponse(data.bars));
 
             foos.name = 'bars';
 
@@ -165,8 +165,6 @@
 
           it('should auto-fetch collection on params change', function() {
 
-            serverRespondsWithJson(data.bars);
-
             foos.set('params', {baz: 1});
             expectRequest('GET', '/foos?baz=1');
 
@@ -182,7 +180,7 @@
             var newObj = {newKey: 'foo'};
             var newObjOnServer = cloneObject(newObj);
             newObjOnServer.id = 4;
-            serverRespondsWithJson(newObjOnServer);
+            server.respondWith(getJsonResponse(newObjOnServer));
 
             foos.push('collection', newObj);
 
@@ -201,7 +199,7 @@
 
             var newKey = 'foo';
             var newKeyOnServer = 'bar';
-            serverRespondsWithJson({newKey: newKeyOnServer});
+            server.respondWith(getJsonResponse({newKey: newKeyOnServer}));
 
             foos.set('collection.0.newKey', newKey);
 
@@ -219,7 +217,7 @@
 
             var newKey = 'foo';
             var newKeyOnServer = 'bar';
-            serverRespondsWithJson({newKey: newKeyOnServer});
+            server.respondWith(getJsonResponse({newKey: newKeyOnServer}));
             foos.set('selectedItem', foos.collection[0]);
 
             foos.set('selectedItem.newKey', newKey);
@@ -241,7 +239,7 @@
             newItem.newKey = 'foo';
             var newItemOnServer = cloneObject(newItem);
             newItemOnServer.newKey = 'bar';
-            serverRespondsWithJson(newItemOnServer);
+            server.respondWith(getJsonResponse(newItemOnServer));
 
             foos.set('collection.0', newItem);
 
@@ -281,7 +279,7 @@
             var barsSubset = data.bars.filter(function(item) {
               return item.fooId === 1;
             });
-            serverRespondsWithJson(barsSubset);
+            server.respondWith(getJsonResponse(barsSubset));
 
             foos.selectedItem = foos.collection[0];
 
@@ -295,7 +293,7 @@
 
           it('should not auto-fetch when no-auto-fetch is set', function(done) {
 
-            serverRespondsWithJson(data.bars);
+            server.respondWith(getJsonResponse(data.bars));
             bars.collection.fetch();
             afterServerResponse(function() {
 
@@ -316,11 +314,19 @@
 
 
           function createRestApiSingle(done) {
-            restApi = fixture('rest-api-single', {apiUrl: data.apiUrl});
+            server.respondWith(getJsonResponse(data.foos[1]));
+
+            restApi = fixture('fixture-rest-api-single');
+            restApi.addEventListener('error', function(e) {
+              // Some error responses from fake server throw `error` event
+              // from <iron-ajax>. This is safe to ignore.
+              // Otherwise they manifest in Firefox.
+              e.stopPropagation();
+            });
+            restApi.url = data.apiUrl;
             foos = Polymer.dom(restApi).children[0];
             bars = Polymer.dom(restApi).children[1];
             foosBars = Polymer.dom(foos).children[0];
-            serverRespondsWithJson(data.foos[1]);
             if (done) {
               afterServerResponse(done);
             }
@@ -358,12 +364,15 @@
 
             it('should auto-fetch the selected item on name change', function(done) {
 
-              serverRespondsWithJson(data.bars[1]);
+              server.respondWith(getJsonResponse(data.bars[1]));
 
               foos.name = 'bars';
 
-              expectRequest('GET', '/bars/2');
-              expect(server.requests.length).to.equal(3);
+              var requestLog = server.requests.map(function (r) {
+                return r.method + ' ' + r.url;
+              });
+              expect(requestLog).to.include('GET ' + getApiUrl('/bars/2'));
+              expect(requestLog.length).to.equal(4);
 
               afterServerResponse(function() {
                 expect(foos.collection.length).to.equal(1);
@@ -377,7 +386,7 @@
 
             it('should auto-fetch the selected item on id change', function(done) {
 
-              serverRespondsWithJson(data.foos[0]);
+              server.respondWith(getJsonResponse(data.foos[0]));
 
               foos.selectedItemId = data.foos[0].id;
 
@@ -396,7 +405,7 @@
 
             it('should auto-fetch the selected item on params change', function() {
 
-              serverRespondsWithJson(data.bars);
+              server.respondWith(getJsonResponse(data.bars));
 
               foos.set('params', {baz: 1});
               expectRequest('GET', '/foos/2?baz=1');
@@ -420,7 +429,7 @@
             it('should replace collection after fetch of another item', function(done) {
 
               var newObj = {id: 1, newKey: 'foo'};
-              serverRespondsWithJson(newObj);
+              server.respondWith(getJsonResponse(newObj));
 
               foos.selectedItemId = data.foos[0].id;
 
@@ -436,7 +445,7 @@
             it('should replace existing item after fetch', function(done) {
 
               var newObj = {id: 2, newKey: 'foo'};
-              serverRespondsWithJson(newObj);
+              server.respondWith(getJsonResponse(newObj));
 
               foos.collection.fetchItem(2);
 

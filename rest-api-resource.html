@@ -23,7 +23,7 @@ An element specifying REST API resource inside <rest-api>.
 -->
 <dom-module id="rest-api-resource">
   <template>
-    <content></content>
+    <slot></slot>
   </template>
 </dom-module>
 
@@ -51,7 +51,8 @@ An element specifying REST API resource inside <rest-api>.
        */
       url: {
         type: String,
-        computed: '_computeUrl(parentUrl, _parentItem, name)'
+        computed: '_computeUrl(parentUrl, _parentItem, name)',
+        notify: true
       },
 
       /**
@@ -63,13 +64,6 @@ An element specifying REST API resource inside <rest-api>.
           return {};
         }
       },
-
-      /**
-       * Default set of request parameters used in all API requests.
-       *
-       * Inherited from the `params` parameter of the parent `rest-api` element.
-       */
-      _rootParams: Object,
 
       /**
        * The set of request headers used for this resource and its nested resources.
@@ -149,7 +143,10 @@ An element specifying REST API resource inside <rest-api>.
        * Enables single item fetching. For example, when selectedItemId = 1 is specified,
        * it fetches the item from /collectionName/1 and adds the item to an empty collection.
        */
-      fetchSingle: Boolean,
+      fetchSingle: {
+        type: Boolean,
+        value: false
+      },
 
       /**
        * Enable bubbling for `error`, `request` and `response` events.
@@ -232,27 +229,32 @@ An element specifying REST API resource inside <rest-api>.
         }
       }
 
-      this._rootParams = this._isNested() ? this.parentElement._rootParams : this.parentElement.params;
-
       if (this._isNested()) {
         this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
       }
 
-      this.parentUrl = this.parentElement.url; // triggers _autoFetch, please keep it last here
+      this._updateParentUrl(); // triggers _autoFetch, please keep it last here
+      this.listen(this.parentElement, 'url-changed', '_updateParentUrl');
     },
 
     detached: function() {
       this.unlisten(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+      this.unlisten(this.parentElement, 'url-changed', '_updateParentUrl');
     },
 
     observers: [
       '_collectionChanged(collection.*)',
-      '_autoFetch(url, collection, params.*)',
-      '_autoFetch(fetchSingle)'
+      '_autoFetch(fetchSingle, url, collection, params.*)',
     ],
 
     _isNested: function() {
       return this.parentElement.is === 'rest-api-resource';
+    },
+
+    _updateParentUrl: function() {
+      if (this.parentUrl !== this.parentElement.url) {
+        this.parentUrl = this.parentElement.url;
+      }
     },
 
     _getParentItemId: function(parentItem) {
@@ -260,6 +262,12 @@ An element specifying REST API resource inside <rest-api>.
     },
 
     _computeUrl: function(parentUrl, parentItem, name) {
+      if (parentUrl === undefined ||
+          parentItem === undefined ||
+          name === undefined) {
+        return;
+      }
+
       var url = parentUrl.replace(/\/$/, '');
 
       if (this._isNested()) {
@@ -305,7 +313,7 @@ An element specifying REST API resource inside <rest-api>.
 
       var keys = changeRecord.path.split('.').slice(1);
 
-      // Update this._collectionById hash index
+      // Update this._collectionById and this._indexesByItem indexs
 
       switch (keys[0]) {
 
@@ -338,7 +346,7 @@ An element specifying REST API resource inside <rest-api>.
             break;
           }
 
-          var item = this._polymerCollection.getItem(keys[0]);
+          var item = this.get(['collection', keys[0]]);
 
           if (keys.length === 1 || keys[1] === this.idAttribute) {
             var oldId = this._getItemId(item);
@@ -413,7 +421,7 @@ An element specifying REST API resource inside <rest-api>.
 
         default:
 
-          var item = this._polymerCollection.getItem(keys[0]);
+          var item = this.get(['collection', keys[0]]);
           var itemId = this._getItemId(item);
           var options = {
             callback: this._updateItem.bind(this)
@@ -445,10 +453,6 @@ An element specifying REST API resource inside <rest-api>.
 
       }
 
-    },
-
-    get _polymerCollection() {
-      return Polymer.Collection.get(this.collection);
     },
 
     _spliceCollection: function(index, count, items) {
@@ -494,11 +498,11 @@ An element specifying REST API resource inside <rest-api>.
         return;
       }
 
-      var key = this._polymerCollection.getKey(item);
+      var index = this.collection.indexOf(item); // TODO: use a Map
 
       Object.getOwnPropertyNames(attrs).forEach((function(attr) {
         if (attrs[attr] !== item[attr]) {
-          this.set(['collection', key, attr], attrs[attr]);
+          this.set(['collection', index, attr], attrs[attr]);
         }
       }).bind(this));
 
@@ -530,8 +534,8 @@ An element specifying REST API resource inside <rest-api>.
 
       this._skipAutoSave = true;
 
-      var key = this._polymerCollection.getKey(item);
-      this.notifyPath(['collection', key, name, path], value);
+      var index = this.collection.indexOf(item); // TODO: use a Map
+      this.notifyPath(['collection', index, name, path], value);
 
       this._skipAutoSave = false;
 
@@ -677,6 +681,10 @@ An element specifying REST API resource inside <rest-api>.
       return this.queryEffectiveChildren('[rest-api-transport]') || this.parentElement._transportElement;
     },
 
+    get _rootParams() {
+      return this._isNested() ? this.parentElement._rootParams : this.parentElement.params;
+    },
+
     _request: function(method, url, data, supplementalParams) {
       var transport = this._transportElement;
 
@@ -710,6 +718,12 @@ An element specifying REST API resource inside <rest-api>.
     },
 
     _autoFetch: function() {
+      for (var i = 1; i < arguments.length; i++) {
+        if (arguments[i] === undefined) {
+          return;
+        }
+      }
+
       if (!this.noAutoFetch && !this._skipAutoFetch) {
         if (this._autoFetchRequest) {
           this._autoFetchRequest.abort();
@@ -770,9 +784,9 @@ An element specifying REST API resource inside <rest-api>.
     },
 
     _selectedItemChanged: function(selectedItem) {
-      var key = this._polymerCollection.getKey(selectedItem);
-      if (key) {
-        this.linkPaths('selectedItem', 'collection.' + key);
+      var index = this.collection.indexOf(selectedItem); // TODO: use a Map
+      if (index !== -1) {
+        this.linkPaths('selectedItem', 'collection.' + index);
       } else {
         this.unlinkPaths('selectedItem');
       }

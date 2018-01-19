@@ -67,7 +67,7 @@ API documentation page for the custom transport elements API.
 <dom-module id="rest-api">
   <template>
     <iron-ajax id="ajax" content-type="application/json" bubbles></iron-ajax>
-    <content></content>
+    <slot></slot>
   </template>
 </dom-module>
 
@@ -82,14 +82,20 @@ API documentation page for the custom transport elements API.
       /**
        * REST API root url.
        */
-      url: String,
+      url: {
+        type: String,
+        notify: true
+      },
 
       /**
        * Default set of request parameters used in all API requests.
        *
        * Inherited by child `rest-api-resource` elements.
        */
-      params: Object,
+      params: {
+        type: Object,
+        notify: true
+      },
 
       /**
        * Default set of request headers used in all API requests.

@@ -23,7 +23,7 @@ limitations under the License.
     <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
     <link rel="import" href="common.html">
   </head>
-  <body class="fullbleed layout horizontal">
+  <body style="margin: 0; height: 100vh; display: flex;">
 
     <dom-module id="gallery-photo">
       <template>
@@ -70,29 +70,31 @@ limitations under the License.
       </script>
     </dom-module>
 
-    <template is="dom-bind" id="app">
-      <rest-api url="http://jsonplaceholder.typicode.com">
-        <rest-api-resource name="albums" collection="{{albums}}" selected-item="{{currentAlbum}}" read-only>
-          <rest-api-resource name="photos" read-only></rest-api-resource>
-        </rest-api-resource>
-      </rest-api>
+    <dom-bind>
+      <template is="dom-bind">
+        <rest-api url="http://jsonplaceholder.typicode.com">
+          <rest-api-resource name="albums" collection="{{albums}}" selected-item="{{currentAlbum}}" read-only>
+            <rest-api-resource name="photos" read-only></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
 
-      <iron-list items="[[albums]]" selection-enabled selected-item="{{currentAlbum}}" class="flex-1">
-        <template>
-          <paper-item>[[item.title]]</paper-item>
-        </template>
-      </iron-list>
+        <iron-list items="[[albums]]" selection-enabled selected-item="{{currentAlbum}}" style="flex: 1;">
+          <template>
+            <paper-item>[[item.title]]</paper-item>
+          </template>
+        </iron-list>
 
-      <div class="flex-2 layout vertical">
-        <template is="dom-if" if="[[currentAlbum]]">
-          <iron-list items="[[currentAlbum.photos]]" grid as="photo" class="flex-2">
-            <template>
-              <gallery-photo photo="[[photo]]"></gallery-photo>
-            </template>
-          </iron-list>
-        </template>
-      </div>
-    </template>
+        <div style="flex: 2; display: flex;">
+          <template is="dom-if" if="[[currentAlbum]]">
+            <iron-list items="[[currentAlbum.photos]]" grid as="photo" style="flex: 1;">
+              <template>
+                <gallery-photo photo="[[photo]]"></gallery-photo>
+              </template>
+            </iron-list>
+          </template>
+        </div>
+      </template>
+    </dom-bind>
 
   </body>
 </html>

@@ -7,13 +7,14 @@
     <script src="../../web-component-tester/browser.js"></script>
 
     <link rel="import" href="../../test-fixture/test-fixture.html">
-    <link rel="import" href="../rest-api.html">
+    <link rel="import" href="../../polymer/polymer.html">
     <link rel="import" href="../../iron-ajax/iron-ajax.html">
+    <link rel="import" href="../rest-api.html">
   </head>
   <body>
 
-    <test-fixture id="default-transport">
-      <template is="dom-template">
+    <test-fixture id="fixture-default-transport">
+      <template>
         <rest-api url="//rest-api.example.com">
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
@@ -23,8 +24,8 @@
       </template>
     </test-fixture>
 
-    <test-fixture id="custom-transports">
-      <template is="dom-template">
+    <test-fixture id="fixture-custom-transports">
+      <template>
         <rest-api url="//rest-api.example.com">
           <rest-api-resource name="foos">
             <rest-api-resource name="bars" read-only></rest-api-resource>
@@ -77,7 +78,7 @@
         describe('default', function() {
 
           beforeEach(function() {
-            createRestApi('default-transport');
+            createRestApi('fixture-default-transport');
           });
 
           it('should have api transport', function() {
@@ -99,9 +100,9 @@
           var apiTransport, foosTransport;
 
           beforeEach(function() {
-            createRestApi('custom-transports');
-            apiTransport = Polymer.dom(restApi).children.slice(-1)[0];
-            foosTransport = Polymer.dom(foos).children.slice(-1)[0];
+            createRestApi('fixture-custom-transports');
+            apiTransport = Array.from(Polymer.dom(restApi).children).slice(-1)[0];
+            foosTransport = Array.from(Polymer.dom(foos).children).slice(-1)[0];
           });
 
           it('should accept api transport', function() {

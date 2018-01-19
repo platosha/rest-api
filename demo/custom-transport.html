@@ -23,40 +23,43 @@ limitations under the License.
     <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
     <link rel="import" href="common.html">
     <link rel="import" href="../../iron-ajax/iron-ajax.html">
+    <link rel="import" href="../../iron-flex-layout/iron-flex-layout-classes.html">
     <link rel="import" href="../../paper-styles/classes/shadow.html">
     <link rel="import" href="../../paper-styles/typography.html">
     <link rel="import" href="../../paper-styles/default-theme.html">
-    <style is="custom-style">
-      body {
-        margin: 0;
-        background-color: var(--primary-background-color);
-        color: var(--primary-text-color);
-        }
+    <custom-style>
+      <style is="custom-style" include="iron-flex iron-flex-factors iron-positioning">
+        body {
+          margin: 0;
+          background-color: var(--primary-background-color);
+          color: var(--primary-text-color);
+          }
 
-      h2 {
-        padding: .5em 1em;
-        margin: 0;
-        font-size: 1em;
-        background-color: var(--primary-color);
-        color: var(--dark-theme-text-color);
-        }
+        h2 {
+          padding: .5em 1em;
+          margin: 0;
+          font-size: 1em;
+          background-color: var(--primary-color);
+          color: var(--dark-theme-text-color);
+          }
 
-      h3 {
-        @apply(--paper-font-headline);
-        text-transform: capitalize;
-        }
+        h3 {
+          @apply(--paper-font-headline);
+          text-transform: capitalize;
+          }
 
-      .main {
-        background-color: var(--primary-background-color);
-        color: var(--primary-text-color);
-        }
+        .main {
+          background-color: var(--primary-background-color);
+          color: var(--primary-text-color);
+          }
 
-      .post {
-        padding: 2em;
-        border-bottom: 1px solid;
-        border-bottom-color: var(--divider-color)
-        }
-    </style>
+        .post {
+          padding: 2em;
+          border-bottom: 1px solid;
+          border-bottom-color: var(--divider-color);
+          }
+      </style>
+    </custom-style>
   </head>
   <body class="fullbleed layout horizontal">
 
@@ -107,46 +110,54 @@ limitations under the License.
       </script>
     </dom-module>
 
-    <template is="dom-bind" id="app">
+    <dom-bind id="app">
+      <template>
 
-      <rest-api url="//jsonplaceholder.typicode.com">
-        <rest-api-resource name="users" collection="{{users}}" selected-item="{{currentUser}}" read-only>
-          <rest-api-resource name="posts" collection="{{posts}}" read-only></rest-api-resource>
-        </rest-api-resource>
-        <custom-transport rest-api-transport></custom-transport>
-      </rest-api>
+        <rest-api url="//jsonplaceholder.typicode.com">
+          <rest-api-resource name="users" collection="{{users}}" selected-item="{{currentUser}}" read-only>
+            <rest-api-resource name="posts" collection="{{posts}}" read-only></rest-api-resource>
+          </rest-api-resource>
+          <custom-transport rest-api-transport></custom-transport>
+        </rest-api>
 
-      <template is="dom-if" if="[[users]]">
-        <div class="layout vertical flex-1">
-          <h2 class="shadow-elevation-4dp">View posts by:</h2>
-          <iron-list items="[[users]]" as="user" selection-enabled selected-item="{{currentUser}}" class="flex">
-            <template>
-              <paper-item>[[user.name]]</paper-item>
-            </template>
-          </iron-list>
-        </div>
-      </template>
-
-      <template is="dom-if" if="[[posts]]">
-        <iron-list items="[[posts]]" as="post" class="main flex-2">
+        <dom-if if="[[users]]">
           <template>
-            <div class="post">
-              <h3>[[post.title]]</h3>
-              <p>[[post.body]]</p>
+            <div class="layout vertical flex-1">
+              <h2 class="shadow-elevation-4dp">View posts by:</h2>
+              <iron-list items="[[users]]" as="user" selection-enabled selected-item="{{currentUser}}" class="flex">
+                <template>
+                  <paper-item>[[user.name]]</paper-item>
+                </template>
+              </iron-list>
             </div>
           </template>
-        </iron-list>
-      </template>
+        </dom-if>
 
-      <template is="dom-if" if="[[requests]]">
-        <iron-list items="[[requests]]" as="request" class="flex-1">
+        <dom-if if="[[posts]]">
           <template>
-            <paper-item class="layout vertical"></paper-item>
+            <iron-list items="[[posts]]" as="post" class="main flex-2">
+              <template>
+                <div class="post">
+                  <h3>[[post.title]]</h3>
+                  <p>[[post.body]]</p>
+                </div>
+              </template>
+            </iron-list>
           </template>
-        </iron-list>
-      </template>
+        </dom-if>
 
-    </template>
+        <dom-if if="[[requests]]">
+          <template>
+            <iron-list items="[[requests]]" as="request" class="flex-1">
+              <template>
+                <paper-item class="layout vertical"></paper-item>
+              </template>
+            </iron-list>
+          </template>
+        </dom-if>
+
+      </template>
+    </dom-bind>
 
   </body>
 </html>

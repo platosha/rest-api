@@ -7,11 +7,12 @@
     <script src="../../web-component-tester/browser.js"></script>
 
     <link rel="import" href="../../test-fixture/test-fixture.html">
+    <link rel="import" href="../../polymer/polymer.html">
     <link rel="import" href="../rest-api.html">
   </head>
   <body>
 
-    <test-fixture id="rest-api">
+    <test-fixture id="fixture-rest-api">
       <template is="dom-template">
         <rest-api url="{{apiUrl}}" headers='{"x-api": "api"}'>
           <rest-api-resource name="foos" headers='{"x-foo": "foo"}'>
@@ -55,7 +56,7 @@
         var fixtureProperties = {
           apiUrl: data.apiUrl
         };
-        restApi = fixture('rest-api', fixtureProperties);
+        restApi = fixture('fixture-rest-api', fixtureProperties);
         foos = Polymer.dom(restApi).children[0];
         foosBars = Polymer.dom(foos).children[0];
         if (done) {
