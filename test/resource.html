@@ -34,6 +34,32 @@
       </template>
     </test-fixture>
 
+    <dom-module id="x-scope">
+      <template>
+        <rest-api>
+          <rest-api-resource name="foos" selected-item="[[selectedItem]]">
+            <rest-api-resource name="bars" read-only></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
+      </template>
+      <script>
+        addEventListener('WebComponentsReady', function() {
+          Polymer({
+            is: 'x-scope',
+            properties: {
+              selectedItem: Object
+            }
+          });
+        });
+      </script>
+    </dom-module>
+
+    <test-fixture id="fixture-scope">
+      <template>
+        <x-scope></x-scope>
+      </template>
+    </test-fixture>
+
     <script>
 
       var restApi, foos, foosBars, bars, server;
@@ -306,6 +332,43 @@
 
           });
 
+
+        });
+
+
+        describe('scope bound selectedItem nested auto-fetch', function() {
+
+
+          var scope;
+
+
+          beforeEach(function(done) {
+            server.respondWith(getJsonResponse(data.foos));
+            scope = fixture('fixture-scope');
+            restApi = Polymer.dom(scope.root).firstElementChild;
+            restApi.url = data.apiUrl;
+            foos = Polymer.dom(restApi).children[0];
+            bars = Polymer.dom(restApi).children[1];
+            foosBars = Polymer.dom(foos).children[0];
+            afterServerResponse(done);
+          });
+
+
+          it('should auto-fetch on selected item change', function(done) {
+
+            var barsSubset = data.bars.filter(function(item) {
+              return item.fooId === 1;
+            });
+            server.respondWith(getJsonResponse(barsSubset));
+
+            scope.selectedItem = foos.collection[0];
+
+            afterServerResponse(function() {
+              expectArraysToEqual(foosBars.collection, barsSubset);
+              done();
+            });
+
+          });
 
         });
 

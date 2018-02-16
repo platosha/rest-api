@@ -214,7 +214,7 @@ An element specifying REST API resource inside <rest-api>.
       }
 
       if (this._isNested()) {
-        this.listen(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+        this.listen(this.parentElement, 'resource-selected-item-changed', '_parentSelectedItemChanged');
       }
 
       this._updateParentUrl(); // triggers _autoFetch, please keep it last here
@@ -222,7 +222,7 @@ An element specifying REST API resource inside <rest-api>.
     },
 
     detached: function() {
-      this.unlisten(this.parentElement, 'selected-item-changed', '_parentSelectedItemChanged');
+      this.unlisten(this.parentElement, 'resource-selected-item-changed', '_parentSelectedItemChanged');
       this.unlisten(this.parentElement, 'url-changed', '_updateParentUrl');
     },
 
@@ -232,7 +232,7 @@ An element specifying REST API resource inside <rest-api>.
     ],
 
     _isNested: function() {
-      return this.parentElement.is === 'rest-api-resource';
+      return this.parentElement.localName === 'rest-api-resource';
     },
 
     _updateParentUrl: function() {
@@ -769,6 +769,8 @@ An element specifying REST API resource inside <rest-api>.
       } else {
         this.unlinkPaths('selectedItem');
       }
+      // In P2 the change is not notifying when coming from bindings :-(
+      this.dispatchEvent(new CustomEvent('resource-selected-item-changed', {detail: {value: selectedItem}}));
     }
 
   });
