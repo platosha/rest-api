@@ -76,20 +76,6 @@ An element specifying REST API resource inside <rest-api>.
       },
 
       /**
-       * Allow the use of query parameters on other requests than GET requests.
-       *
-       * Inherited from parent `rest-api` element.
-       */
-      allowNonGetParams: Boolean,
-
-      /**
-       * The model id attribute name. Used for model get and save API requests.
-       *
-       * Inherited from parent `rest-api` element.
-       */
-      idAttribute: String,
-
-      /**
        * The collection of data representing the retrieved data, this data will
        * be synced with the server when updated.
        */
@@ -119,13 +105,6 @@ An element specifying REST API resource inside <rest-api>.
       noAutoFetch: Boolean,
 
       /**
-       * Disable send any data changes to the API.
-       *
-       * Inherited from parent `rest-api` element.
-       */
-      readOnly: Boolean,
-
-      /**
        * Enables single item fetching. For example, when selectedItemId = 1 is specified,
        * it fetches the item from /collectionName/1 and adds the item to an empty collection.
        */
@@ -133,13 +112,6 @@ An element specifying REST API resource inside <rest-api>.
         type: Boolean,
         value: false
       },
-
-      /**
-       * Enable bubbling for `error`, `request` and `response` events.
-       *
-       * Inherited from parent `rest-api` element.
-       */
-      bubbles: Boolean,
 
       /**
        * The currently selected item of the collection.
@@ -200,19 +172,6 @@ An element specifying REST API resource inside <rest-api>.
     },
 
     attached: function() {
-      var inheritedProperties = [
-        'idAttribute',
-        'readOnly',
-        'bubbles',
-        'allowNonGetParams'
-      ];
-
-      for (var i = 0, prop; prop = inheritedProperties[i]; i++) {
-        if (this[prop] === undefined) {
-          this[prop] = this.parentElement[prop];
-        }
-      }
-
       if (this._isNested()) {
         this.listen(this.parentElement, 'resource-selected-item-changed', '_parentSelectedItemChanged');
       }
@@ -228,8 +187,81 @@ An element specifying REST API resource inside <rest-api>.
 
     observers: [
       '_collectionChanged(collection.*)',
-      '_autoFetch(fetchSingle, url, collection, params.*)',
+      '_autoFetch(fetchSingle, url, collection, params.*, isAttached)',
     ],
+
+    /**
+     * Allow the use of query parameters on other requests than GET requests.
+     *
+     * Inherited from parent `rest-api` element.
+     *
+     * @type {boolean}
+     * @default false
+     */
+    get allowNonGetParams() {
+      return this._allowNonGetParams !== undefined ? this._allowNonGetParams : this.parentElement.allowNonGetParams;
+    },
+
+    /**
+     * @private
+     */
+    set allowNonGetParams(value) {
+      this._allowNonGetParams = value;
+    },
+
+    /**
+     * Enable bubbling for `error`, `request` and `response` events.
+     *
+     * Inherited from parent `rest-api` element.
+     *
+     * @type {boolean}
+     */
+    get bubbles() {
+      return this._bubbles !== undefined ? this._bubbles : this.parentElement.bubbles;
+    },
+
+    /**
+     * @private
+     */
+    set bubbles(value) {
+      this._bubbles = value;
+    },
+
+    /**
+     * The model id attribute name. Used for model get and save API requests.
+     *
+     * Inherited from parent `rest-api` element.
+     *
+     * @type {string}
+     */
+    get idAttribute() {
+      return this._idAttribute !== undefined ? this._idAttribute : this.parentElement.idAttribute;
+    },
+
+    /**
+     * @private
+     */
+    set idAttribute(value) {
+      this._idAttribute = value;
+    },
+
+    /**
+     * Disable send any data changes to the API.
+     *
+     * Inherited from parent `rest-api` element.
+     *
+     * @type {boolean}
+     */
+    get readOnly() {
+      return this._readOnly !== undefined ? this._readOnly : this.parentElement.readOnly;
+    },
+
+    /**
+     * @private
+     */
+    set readOnly(value) {
+      this._readOnly = value;
+    },
 
     _isNested: function() {
       return this.parentElement.localName === 'rest-api-resource';
@@ -727,9 +759,7 @@ An element specifying REST API resource inside <rest-api>.
       this._skipAutoFetch = false;
       if (this._parentItem) {
         var newCollection = [];
-        // We only do usual set for the parent item here, as the change
-        // notification will be done by the _nestedCollectionChanged observer.
-        this._parentItem[this.name] = newCollection;
+        this.set(['_parentItem', this.name, newCollection]);
         this.set('collection', newCollection);
       }
     },
@@ -770,7 +800,7 @@ An element specifying REST API resource inside <rest-api>.
         this.unlinkPaths('selectedItem');
       }
       // In P2 the change is not notifying when coming from bindings :-(
-      this.dispatchEvent(new CustomEvent('resource-selected-item-changed', {detail: {value: selectedItem}}));
+      this.fire('resource-selected-item-changed', {value: selectedItem}, {bubbles: false});
     }
 
   });
