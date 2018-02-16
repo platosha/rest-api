@@ -75,7 +75,7 @@ limitations under the License.
         </iron-ajax>
       </template>
       <script>
-        document.addEventListener('HTMLImportsLoaded', function() {
+        addEventListener('HTMLImportsLoaded', function() {
           /**
            * Example custom transport element to use with `<rest-api>`. Logs
            * the API requests before sending. Also measures and logs the
@@ -110,8 +110,8 @@ limitations under the License.
       </script>
     </dom-module>
 
-    <dom-bind id="app">
-      <template>
+    <dom-bind>
+      <template is="dom-bind">
 
         <rest-api url="//jsonplaceholder.typicode.com">
           <rest-api-resource name="users" collection="{{users}}" selected-item="{{currentUser}}" read-only>
@@ -120,41 +120,27 @@ limitations under the License.
           <custom-transport rest-api-transport></custom-transport>
         </rest-api>
 
-        <dom-if if="[[users]]">
-          <template>
-            <div class="layout vertical flex-1">
-              <h2 class="shadow-elevation-4dp">View posts by:</h2>
-              <iron-list items="[[users]]" as="user" selection-enabled selected-item="{{currentUser}}" class="flex">
-                <template>
-                  <paper-item>[[user.name]]</paper-item>
-                </template>
-              </iron-list>
-            </div>
-          </template>
-        </dom-if>
-
-        <dom-if if="[[posts]]">
-          <template>
-            <iron-list items="[[posts]]" as="post" class="main flex-2">
+        <template is="dom-if" if="[[users]]">
+          <div class="layout vertical flex-1">
+            <h2 class="shadow-elevation-4dp">View posts by:</h2>
+            <iron-list items="[[users]]" as="user" selection-enabled selected-item="{{currentUser}}" class="flex">
               <template>
-                <div class="post">
-                  <h3>[[post.title]]</h3>
-                  <p>[[post.body]]</p>
-                </div>
+                <paper-item>[[user.name]]</paper-item>
               </template>
             </iron-list>
-          </template>
-        </dom-if>
+          </div>
+        </template>
 
-        <dom-if if="[[requests]]">
-          <template>
-            <iron-list items="[[requests]]" as="request" class="flex-1">
-              <template>
-                <paper-item class="layout vertical"></paper-item>
-              </template>
-            </iron-list>
-          </template>
-        </dom-if>
+        <template is="dom-if" if="[[posts]]">
+          <iron-list items="[[posts]]" as="post" class="main flex-2">
+            <template>
+              <div class="post">
+                <h3>[[post.title]]</h3>
+                <p>[[post.body]]</p>
+              </div>
+            </template>
+          </iron-list>
+        </template>
 
       </template>
     </dom-bind>

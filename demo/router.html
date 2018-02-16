@@ -53,36 +53,46 @@ limitations under the License.
   </head>
   <body>
 
-    <template is="dom-bind" id="app">
+    <dom-bind>
+      <template is="dom-bind">
 
-      <app-location route="{{route}}" use-hash-as-path></app-location>
-      <app-route route="{{route}}" pattern="/post/:postId" data="{{routeData}}"></app-route>
+        <app-location route="{{route}}" use-hash-as-path></app-location>
+        <app-route route="{{route}}" pattern="/post/:postId" data="{{routeData}}"></app-route>
 
-      <rest-api url="//jsonplaceholder.typicode.com">
-        <rest-api-resource name="posts" collection="{{posts}}" fetch-single selected-item-id="[[routeData.postId]]">
-          <rest-api-resource name="comments" collection="{{comments}}"></rest-api-resource>
-        </rest-api-resource>
-      </rest-api>
+        <rest-api url="//jsonplaceholder.typicode.com">
+          <rest-api-resource name="posts" collection="{{posts}}" selected-item="{{selectedPost}}" fetch-single selected-item-id="[[routeData.postId]]">
+            <rest-api-resource name="comments" collection="{{comments}}"></rest-api-resource>
+          </rest-api-resource>
+        </rest-api>
 
-      <a href="#/post/1">Post 1</a>
-      <a href="#/post/2">Post 2</a>
-      <a href="#/post/3">Post 3</a>
-      <a href="javascript:history.back();">Back</a>
+        <a href="#/post/1">Post 1</a>
+        <a href="#/post/2">Post 2</a>
+        <a href="#/post/3">Post 3</a>
+        <a href="javascript:history.back();">Back</a>
 
-      <template is="dom-if" if="[[routeData.postId]]">
-        <p>Post id: [[routeData.postId]]</p>
-        <template is="dom-repeat" items="[[comments]]" as="comment">
-          <section>
-            <header>
-              <h2>[[comment.name]]</h2>
-              <address>[[comment.email]]</address>
-            </header>
-            <p>[[comment.body]]</p>
-          </section>
+        <template is="dom-if" if="[[!routeData.postId]]">
+          <p>Main page, no post seleted. Click a post link above.</p>
         </template>
-      </template>
 
-    </template>
+        <template is="dom-if" if="[[routeData.postId]]">
+          <p>Navigated post id: [[routeData.postId]]</p>
+
+          <h1>[[selectedPost.title]]</h1>
+          <p>[[selectedPost.body]]</p>
+          <h2>Comments</h2>
+          <template is="dom-repeat" items="[[comments]]" as="comment">
+            <section>
+              <header>
+                <h3>[[comment.name]]</h3>
+                <address>From [[comment.email]]</address>
+              </header>
+              <p>[[comment.body]]</p>
+            </section>
+          </template>
+        </template>
+
+      </template>
+    </dom-bind>
 
   </body>
 </html>
