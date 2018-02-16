@@ -50,8 +50,9 @@ limitations under the License.
             margin: 0 0 .5em 10em;
             }
         </style>
+
         <template is="dom-if" if="[[book]]">
-          <article class="book">
+          <article>
             <paper-input label="Title" value="{{book.title}}"></paper-input>
             <paper-input label="Year" type="number" min="1439" max="[[currentYear]]" value="{{book.year}}"></paper-input>
             <paper-input label="Author" value="{{book.author}}"></paper-input>
@@ -71,7 +72,7 @@ limitations under the License.
         </template>
       </template>
       <script>
-        document.addEventListener('HTMLImportsLoaded', function() {
+        document.addEventListener('WebComponentsReady', function() {
           Polymer({
             is: 'app-book-view',
             properties: {
@@ -85,74 +86,80 @@ limitations under the License.
       </script>
     </dom-module>
 
-    <template is="dom-bind" id="app">
+    <dom-bind id="app">
+      <template is="dom-bind">
 
-      <rest-api url="/api"
-                offset-param-name="_start"
-                limit-param-name="_limit"
-                bubbles
-                on-error="handleAjaxEvent"
-                on-request="handleAjaxEvent"
-                on-response="handleAjaxEvent">
-        <rest-api-resource name="books" collection="{{books}}" selected-item="{{currentBook}}">
-          <rest-api-resource name="reviews" read-only></rest-api-resource>
-        </rest-api-resource>
-        <rest-api-resource name="reviews" no-auto-fetch></rest-api-resource>
-      </rest-api>
+        <rest-api url="http://localhost:3000"
+                  bubbles
+                  on-error="handleAjaxEvent"
+                  on-request="handleAjaxEvent"
+                  on-response="handleAjaxEvent">
+          <rest-api-resource name="books" collection="{{books}}" selected-item="{{currentBook}}">
+            <rest-api-resource name="reviews" read-only></rest-api-resource>
+          </rest-api-resource>
+          <rest-api-resource name="reviews" no-auto-fetch></rest-api-resource>
+        </rest-api>
 
-      <p>
-        <paper-button raised onclick="appendBook()">Append a book</paper-button>
-        <paper-button raised onclick="removeLastBook()">Remove the last book</paper-button>
-        <paper-button raised onclick="changeLastBookYear()">Change the last book’s year</paper-button>
-      </p>
+        <p>
+          <paper-button raised onclick="appendBook()">Append a book</paper-button>
+          <paper-button raised onclick="removeLastBook()">Remove the last book</paper-button>
+          <paper-button raised onclick="changeLastBookYear()">Change the last book’s year</paper-button>
+        </p>
 
-      <iron-list items="[[books]]" selection-enabled selected-item="{{currentBook}}" style="height: 288px;">
-        <template>
-          <paper-item style="padding-top:24px;">
-            <paper-item-body class="flex-none self-start" style="padding-right: 24px;">
-              [[item.year]]
-            </paper-item-body>
-            <paper-item-body two-line class="flex layout start-justified">
-              <div secondary>[[item.author]]</div>
-              <div>[[item.title]]</div>
-            </paper-item-body>
-          </paper-item>
-        </template>
-      </iron-list>
+        <paper-item style="align-items: baseline;" disabled>
+          <strong style="padding-right: 24px;">Year</strong>
+          <strong>Title and Author</strong>
+        </paper-item>
 
-      <h3>Selected book</h3>
-      <app-book-view book="{{currentBook}}"></app-book-view>
+        <iron-list items="[[books]]" selection-enabled selected-item="{{currentBook}}" style="height: 288px;">
+          <template>
+            <paper-item style="align-items: baseline;">
+              <span style="padding-right: 24px;">[[item.year]]</span>
+              <paper-item-body two-line>
+                <span>[[item.title]]</span>
+                <span secondary>[[item.author]]</span>
+              </paper-item-body>
+            </paper-item>
+          </template>
+        </iron-list>
 
-      <script>
+        <h3>Selected book</h3>
+        <app-book-view book="{{currentBook}}"></app-book-view>
 
-        var app = document.querySelector('#app');
+        <script>
 
-        app.handleAjaxEvent = function(event) {
-          event.stopPropagation();
-          console.log(event.type, event.target, event.detail);
-        };
-
-        function appendBook() {
-          document.querySelector('#app').push('books', {
-            title: 'Random book ' + (Math.random() * 10e7 | 0).toString(36),
-            author: 'Author ' + (Math.random() * 10e7 | 0).toString(36),
-            year: 1970 + Math.random() * 50 | 0
-          });
-        }
-
-        function removeLastBook() {
-          document.querySelector('#app').pop('books');
-        }
-
-        function changeLastBookYear() {
           var app = document.querySelector('#app');
-          var lastBookIndex = app.books.length - 1;
-          app.set('books.' + lastBookIndex + '.year', app.books[lastBookIndex].year - 1);
-        }
+          if (!Polymer.Element) {
+            app = app.firstElementChild;
+          }
 
-      </script>
+          app.handleAjaxEvent = function(event) {
+            event.stopPropagation();
+            console.log(event.type, event.target, event.detail);
+          };
 
-    </template>
+          function appendBook() {
+            document.querySelector('#app').push('books', {
+              title: 'Random book ' + (Math.random() * 10e7 | 0).toString(36),
+              author: 'Author ' + (Math.random() * 10e7 | 0).toString(36),
+              year: 1970 + Math.random() * 50 | 0
+            });
+          }
+
+          function removeLastBook() {
+            document.querySelector('#app').pop('books');
+          }
+
+          function changeLastBookYear() {
+            var app = document.querySelector('#app');
+            var lastBookIndex = app.books.length - 1;
+            app.set('books.' + lastBookIndex + '.year', app.books[lastBookIndex].year - 1);
+          }
+
+        </script>
+
+      </template>
+    </dom-bind>
 
   </body>
 </html>
