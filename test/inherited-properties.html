@@ -18,8 +18,6 @@
             params='{"custom": true}'
             headers='{"X-Custom": true}'
             idAttribute="customIdAttribute"
-            offsetParamName="customOffsetParamName"
-            limitParamName="customLimitParamName"
             read-only
             bubbles>
           <rest-api-resource name="foos" no-auto-fetch>
@@ -47,8 +45,6 @@
         it('should inherit properties', function() {
           [
             'idAttribute',
-            'offsetParamName',
-            'limitParamName',
             'readOnly',
             'bubbles',
             'allowNonGetParams'
