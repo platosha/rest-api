@@ -7,10 +7,10 @@
     "test": "test"
   },
   "dependencies": {
-    "polymer-cli": "^1.5.7"
+    "polymer-cli": "^1.6.0"
   },
   "devDependencies": {
-    "browser-sync": "^2.23.5",
+    "browser-sync": "^2.23.6",
     "connect-logger": "0.0.1",
     "faker": "^3.1.0",
     "json-server": "^0.8.23",
