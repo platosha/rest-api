@@ -14,9 +14,9 @@ cache:
     - node_modules
     - bower_components
 install:
-  - travis_retry npm install -g bower polylint web-component-tester
+  - travis_retry npm install -g bower web-component-tester
   - travis_retry npm install
-  - travis_retry bower install
+  - travis_retry polymer install --variants
 script:
   - npm run lint
   - travis_retry xvfb-run npm test
