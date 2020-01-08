@@ -9,6 +9,9 @@ A Polymer element providing declarative data bindings to REST API.
 ## Example
 
 ```html
+<link rel="import" href="/bower_components/rest-api/rest-api.html">
+<link rel="import" href="/bower_components/rest-api/rest-api-resource.html">
+
 <rest-api url="http://localhost:3000">
   <rest-api-resource name="books" collection="{{books}}"></rest-api-resource>
 </rest-api>
