@@ -15,7 +15,7 @@
     "faker": "^3.1.0",
     "json-server": "^0.8.23",
     "lowdb": "^0.12.5",
-    "underscore": "^1.8.3",
+    "underscore": "^1.13.8",
     "underscore-db": "^0.10.0"
   },
   "scripts": {
